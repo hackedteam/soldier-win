@@ -1,6 +1,6 @@
 #include <Windows.h>
 
-#define SCOUT_VERSION 1002
+#define SCOUT_VERSION 1003
 
 
 VOID InitEncryptionKeys();
