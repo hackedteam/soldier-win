@@ -66,13 +66,13 @@ LPWSTR GetScoutSharedMemoryName()
 {
 	//WCHAR strFormat[] = { L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'\0' };
 	WCHAR strFormat[] = { L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'\0' };
-	LPWSTR pName = (LPWSTR)zalloc(16 * sizeof(WCHAR));
+	LPWSTR pName = (LPWSTR)zalloc(20 * sizeof(WCHAR));
 
 	_snwprintf_s(pName, 
-		16,
+		20,
 		_TRUNCATE,
 		strFormat,
-		pServerKey[5], pServerKey[6], pServerKey[5], pServerKey[4], pServerKey[3], pServerKey[2], pServerKey[1], pServerKey[0], pServerKey[2]);
+		pServerKey[5], pServerKey[6], pServerKey[5], pServerKey[3], pServerKey[4], pServerKey[2], pServerKey[1], pServerKey[0], pServerKey[2]);
 		//pServerKey[5], pServerKey[6], pServerKey[5], pServerKey[4], pServerKey[3], pServerKey[2], pServerKey[1], pServerKey[0]);
 
 		//L"%02X%02X%02X%02X%02X%02X%02X", 
