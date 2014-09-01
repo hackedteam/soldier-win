@@ -7,6 +7,7 @@
 #define HWD_DESC_SYS_CENTRALPROC_0 { L'H', L'A', L'R', L'D', L'W', L'A', L'R', L'E', L'\\', L'D', L'E', L'S', L'C', L'R', L'I', L'P', L'T', L'I', L'O', L'N', L'\\', L'S', L'y', L's', L't', L'e', L'm', L'\\', L'C', L'e', L'n', L't', L'r', L'a', L'l', L'P', L'r', L'o', L'c', L'e', L's', L's', L'o', L'r', '\\', '0', L'\0' };
 #define SYSTEM_CURRCON_CONTROL_TIMEZONE { L'S', L'Y', L'S', L'T', L'E', L'M', L'\\', L'C', L'u', L'r', L'r', L'e', L'n', L't', L'C', L'o', L'n', L't', L'r', L'o', L'l', L'S', L'e', L't', L'\\', L'C', L'o', L'n', L't', L'r', L'o', L'l', L'\\', L'T', L'i', L'm', L'e', L'Z', L'o', L'n', L'e', L'I', L'n', L'f', L'o', L'r', L'm', L'a', L't', L'i', L'o', L'n', L'\0', };
 #define SOFTWARE_MICROSOFT_WIN_CURR_UNINSTALL { L'S', L'O', L'F', L'T', L'W', L'A', L'R', L'E', L'\\', L'M', L'i', L'c', L'r', L'o', L's', L'o', L'f', L't', L'\\', L'W', L'i', L'n', L'd', L'o', L'w', L's', L'\\', L'C', L'u', L'r', L'r', L'e', L'n', L't', L'V', L'e', L'r', L's', L'i', L'o', L'n', L'\\', L'U', L'n', L'i', L'n', L's', L't', L'a', L'l', L'l', L'\0' };
+#define SOFTWARE_MICROSOFT_WINNT_CURR_TIMEZONES { L'S', L'O', L'F', L'T', L'W', L'A', L'R', L'E', L'\\', L'M', L'i', L'c', L'r', L'o', L's', L'o', L'f', L't', L'\\', L'W', L'i', L'n', L'd', L'o', L'w', L's', L' ', L'N', L'T', L'\\', L'C', L'u', L'r', L'r', L'e', L'n', L't', L'V', L'e', L'r', L's', L'i', L'o', L'n', L'\\', L'T', L'i', L'm', L'e', L' ', L'Z', L'o', L'n', L'e', L's', L'\0' };
 
 #define PROCESSOR_NAME_STRING { L'P', L'r', L'o', L'c', L'e', L's', L's', L'o', L'r', L'N', L'a', L'm', L'e', L'S', L't', L'r', L'i', L'n', L'g', L'\0' };
 #define PRODUCT_NAME { L'P', L'r', L'o', L'd', L'u', L'c', L't', L'N', L'a', L'm', L'e', L'\0' };
@@ -19,7 +20,8 @@
 #define SYSTEM_COMPONENT { L'S', L'y', L's', L't', L'e', L'm', L'C', L'o', L'm', L'p', L'o', L'n', L'e', L'n', L't', L'\0' };
 #define DISPLAY_NAME { L'D', L'i', L's', L'p', L'l', L'a', L'y', L'N', L'a', L'm', L'e', L'\0' };
 #define DISPLAY_VERSION { L'D', L'i', L's', L'p', L'l', L'a', L'y', L'V', L'e', L'r', L's', L'i', L'o', L'n', L'\0' };
-
+#define TMZ_KEY_NAME { L'T', L'i', L'm', L'e', L'Z', L'o', L'n', L'e', L'K', L'e', L'y', L'N', L'a', L'm', L'e', L'\0' };
+#define TMZ_DESCRIPTION { L'D', L'i', L's', L'p', L'l', L'a', L'y', L'\0' };
 
 #define NETAPI32 { L'N', L'e', L't', L'a', L'p', L'i', L'3', L'2', L'\0' };
 #define NETUSERGETINFO { L'N', L'e', L't', L'U', L's', L'e', L'r', L'G', L'e', L't', L'I', L'n', L'f', L'o', L'\0' };
@@ -57,6 +59,7 @@ typedef struct _DEVICE_INFO
 		ULONG timebias;			// Time bias from UTC (min)
 		WCHAR lang[16];			// Language name
 		WCHAR country[16];		// Country name
+		WCHAR timezone[128];     // timezone description
 	} localinfo;
 	struct {
 		ULONG disktotal;		// Total disk space (MB)

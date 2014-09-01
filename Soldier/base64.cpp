@@ -11,6 +11,8 @@ base64_encode(const unsigned char *input, int length)
 
     int b64len = (length+2 - ((length+2)%3))*4/3;
     char *b64str = (char *) malloc(b64len + 1);
+	if(b64str == NULL)
+		return NULL;
 
     while (length--) {
         char_array_3[i++] = *(input++);

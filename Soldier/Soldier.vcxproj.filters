@@ -139,6 +139,12 @@
     <Filter Include="Header Files\mods\filesystem">
       <UniqueIdentifier>{86092a61-b653-4c75-889b-69b1b2fd1635}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\mods\social\Yahoo">
+      <UniqueIdentifier>{eac8dc07-eda2-4924-9ca4-5b2d71e0ffa1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mods\social\yahoo">
+      <UniqueIdentifier>{8d1a593a-e728-48fe-8985-d9eca6fac3a0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -258,6 +264,9 @@
     <ClCompile Include="download.cpp">
       <Filter>Source Files\mods\filesystem</Filter>
     </ClCompile>
+    <ClCompile Include="yahoo.cpp">
+      <Filter>Source Files\mods\social\Yahoo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -373,6 +382,12 @@
     </ClInclude>
     <ClInclude Include="filesystem.h">
       <Filter>Header Files\mods\filesystem</Filter>
+    </ClInclude>
+    <ClInclude Include="yahoo.h">
+      <Filter>Header Files\mods\social\yahoo</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

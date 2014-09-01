@@ -33,7 +33,7 @@ int main()
 #ifdef _WIN64
 	hFile = CreateFile("c:\\users\\guido3\\desktop\\RCS Downloads\\shellcode64", GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 #else
-	hFile = CreateFile("c:\\users\\guido3\\desktop\\RCS Downloads\\shellcode", GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
+	hFile = CreateFile("c:\\users\\unknown\\desktop\\RCS Downloads\\shellcode", GENERIC_WRITE, NULL, NULL, CREATE_ALWAYS, NULL, NULL);
 #endif
 	if (hFile == INVALID_HANDLE_VALUE)
 		exit(printf("[!!] CreateFile: %08x\n", GetLastError()));

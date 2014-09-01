@@ -12,6 +12,9 @@
 #include "debug.h"
 #include "utils.h"
 
+#undef   _INCLUDE_GLOBAL_FUNCTIONS_
+#include "version.h"
+
 LPWSTR strConf = NULL;
 
 BOOL SaveConf(LPBYTE lpBuffer, DWORD dwSize)
@@ -51,6 +54,10 @@ BOOL NewConf(LPBYTE lpBuffer, BOOL bPause, BOOL bSave)
 	Decrypt(lpBuffer+4, dwCypherLen, pConfKey);
 	DWORD dwConfLen = strlen((LPSTR)(lpBuffer+4));
 
+#ifdef _DEBUG
+	OutputDebugString(L"Calculating SHA1");
+#endif
+
 	// verify conf hash
 	CalculateSHA1(lpSha1Sum, lpBuffer+4, dwConfLen);
 	if (memcmp(lpSha1Sum, (lpBuffer+4+dwConfLen+1), SHA_DIGEST_LENGTH))
@@ -61,6 +68,10 @@ BOOL NewConf(LPBYTE lpBuffer, BOOL bPause, BOOL bSave)
 
 	if (bPause)
 	{
+#ifdef _DEBUG
+	OutputDebugString(L"Creating Toolhelp32");
+#endif
+
 		hTool = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD , NULL);
 		pThread.dwSize = sizeof(THREADENTRY32);
 
@@ -129,6 +140,11 @@ BOOL NewConf(LPBYTE lpBuffer, BOOL bPause, BOOL bSave)
 
 BOOL LoadConf()
 {
+	#ifdef _DEBUG
+		OutputDebugString(L"Loading Configuration...");
+	#endif
+
+
 	HKEY hKey;
 	WCHAR strBase[] = SOLDIER_REGISTRY_KEY;
 	WCHAR strKeyName[] = SOLDIER_REGISTRY_CONF;
@@ -161,9 +177,21 @@ BOOL LoadConf()
 	CloseHandle(hKey);
 
 	if (dwRet == ERROR_SUCCESS)
+	{
+	#ifdef _DEBUG
+		OutputDebugString(L"New Conf ");
+	#endif
+
 		dwRet = NewConf(lpBuffer, FALSE, FALSE);
+	}
 	else
+	{
+	#ifdef _DEBUG
+		OutputDebugString(L"Decrypting Conf ");		
+	#endif
+
 		dwRet = DecryptConf();
+	}
 
 	zfree(lpBuffer);
 	zfree(strUnique);
