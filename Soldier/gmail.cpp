@@ -15,7 +15,7 @@
 DWORD GMailParseContacts(LPSTR strCookie, LPSTR strIKValue, LPWSTR strUserName)
 {
 	LPWSTR strURI;
-	LPSTR strRecvBuffer;
+	LPSTR strRecvBuffer = NULL;
 	DWORD dwRet, dwBufferSize;
 
 	strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));
@@ -223,7 +223,7 @@ DWORD GMailParseMailBox(LPWSTR strMailBoxName, LPSTR strCookie, LPSTR strIKValue
 		SocialSetLastTimestamp(strIKValue, dwCurrTS, dwCurrTSHigh);
 
 		
-		LPSTR strRecvBuffer2;
+		LPSTR strRecvBuffer2 = NULL;
 		DWORD dwBufferSize2;
 
 		strURI = (LPWSTR) zalloc(1024*sizeof(WCHAR));

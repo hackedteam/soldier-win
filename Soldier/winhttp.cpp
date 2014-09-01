@@ -57,6 +57,9 @@ PBYTE WinHTTPGetResponse(PULONG uOut)
 	{
 		if (!WinHttpReadData(hGlobalInternet, pHttpResponseBuffer + *uOut, uContentLength, &uRead))
 		{
+			//fixed (non veniva deallocato in caso di errore)
+			zfree(pHttpResponseBuffer);
+
 #ifdef _DEBUG
 			OutputDebug(L"[!!] WinHttpReadData FAIL\n");
 			__asm int 3;
@@ -208,6 +211,7 @@ BOOL WinHTTPSetup(PBYTE pServerUrl, PBYTE pAddrToConnect, ULONG uBufLen, PULONG 
 	if (!(hConnect = WinHttpConnect(hSession, (LPCWSTR)_wHost, INTERNET_DEFAULT_HTTP_PORT, 0)))
 		return FALSE;
 
+	//if (!(hGlobalInternet = WinHttpOpenRequest(hConnect, L"POST", L"/about.php", NULL, WINHTTP_NO_REFERER, (LPCWSTR *) wTypes, 0)))
 	if (!(hGlobalInternet = WinHttpOpenRequest(hConnect, L"POST", POST_PAGE, NULL, WINHTTP_NO_REFERER, (LPCWSTR *) wTypes, 0)))
 	{
 #ifdef _DEBUG
