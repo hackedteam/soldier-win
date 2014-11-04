@@ -49,7 +49,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
     </Link>
     <PostBuildEvent>
@@ -116,6 +116,7 @@ ren ..\Release\Soldier.exe soldier
     <ClCompile Include="export.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mayhem.cpp" />
+    <ClCompile Include="twitter.cpp" />
     <ClCompile Include="upgrade.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="winhttp.cpp" />
@@ -157,6 +158,7 @@ ren ..\Release\Soldier.exe soldier
     <ClInclude Include="sha1.h" />
     <ClInclude Include="social.h" />
     <ClInclude Include="sqlite.h" />
+    <ClInclude Include="twitter.h" />
     <ClInclude Include="upgrade.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />

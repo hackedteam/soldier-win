@@ -62,7 +62,7 @@ BOOL ProtoAuth()
 	{
 #ifdef _DEBUG
 		OutputDebug(L"[!!] GetResponse fail @ %s:%d\n", __FILEW__, __LINE__);
-		__asm int 3;
+//		__asm int 3;
 #endif
 
 		zfree(lpProtoResponse);
@@ -831,7 +831,7 @@ LPBYTE GetResponse(BOOL bBase64, LPDWORD dwOut)
 	else
 	{
 		OutputDebug(L"[!!] GetResponse cannot get response from server\n");
-		__asm int 3;
+//		__asm int 3;
 	}
 #endif
 

