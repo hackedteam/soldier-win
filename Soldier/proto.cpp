@@ -652,9 +652,41 @@ LPSTR ProtoMessageAuth()
 	memcpy(lpProtoCommand->InstanceID, lpInstanceId, sizeof(lpProtoCommand->InstanceID));
 	zfree(lpInstanceId);
 
+	/* 
+		determine whether it's a demo scout or not :
+		- cautiously set demo to 0 (i.e. not demo)
+		- if stars align properly set to demo
+	*/ 
+	lpProtoCommand->SubType.Demo = 0x0;
+
+	SHA1Context sha;
+	SHA1Reset(&sha);
+    SHA1Input(&sha, (PBYTE)DEMO_TAG, (DWORD)(strlen(DEMO_TAG)+1));
+	if (SHA1Result(&sha)) 
+	{ 
+		/* sha1 of string Pg-WaVyPzMMMMmGbhP6qAigT, used for demo tag comparison while avoiding being binpatch'd */
+		unsigned nDemoTag[5];
+		nDemoTag[0] = 1575563797;
+		nDemoTag[1] = 2264195072;
+		nDemoTag[2] = 3570558757;
+		nDemoTag[3] = 2213518012;
+		nDemoTag[4] = 971935466;
+		
+		if( nDemoTag[0] == sha.Message_Digest[0] &&
+			nDemoTag[1] == sha.Message_Digest[1] &&
+			nDemoTag[2] == sha.Message_Digest[2] &&
+			nDemoTag[3] == sha.Message_Digest[3] &&
+			nDemoTag[4] == sha.Message_Digest[4] )
+		{
+			lpProtoCommand->SubType.Demo = 0x1;
+		}
+		
+	}
+
 	// sub type => win, scout, release, reserved
 	lpProtoCommand->SubType.Arch = 0x0;
-	lpProtoCommand->SubType.Demo = 0x0;
+		
+	
 	lpProtoCommand->SubType.Stage = 0x2;
 	lpProtoCommand->SubType.Flags = 0x0;
 
