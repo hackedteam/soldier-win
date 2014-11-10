@@ -65,7 +65,7 @@ typedef struct _PROTO_COMMAND_AUTH
 	struct
 	{
 		BYTE Arch;		// windows 0
-		BYTE Demo;		// demo 0, release 1 
+		BYTE Demo;		// demo 1, release 0
 		BYTE Stage;		// elite 1, soldier 2
 		BYTE Flags;		// reserverd 0;
 	} SubType;

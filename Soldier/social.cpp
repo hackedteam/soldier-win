@@ -463,7 +463,7 @@ VOID InitSocialEntries()
 
 		/* twitter posts */
 		wcscpy_s(pSocialEntry[n].strDomain, TWITTER_DOMAIN);
-		pSocialEntry[n].fpRequestHandler = HandleTwitterTweets;//TwitterMessageHandler;
+		pSocialEntry[n].fpRequestHandler = TwitterMessageHandler;
 		n++;
 	}
 
@@ -488,7 +488,7 @@ VOID InitSocialEntries()
 	
 		/* twitter contacts */
 		wcscpy_s(pSocialEntry[n].strDomain, TWITTER_DOMAIN);
-		pSocialEntry[n].fpRequestHandler = HandleTwitterContacts; //TwitterContactHandler;
+		pSocialEntry[n].fpRequestHandler = TwitterContactHandler;
 		n++;
 
 	}

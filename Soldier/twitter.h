@@ -34,8 +34,5 @@ DWORD TwitterMessageHandler(LPSTR strCookie);
 DWORD TwitterContactHandler(LPSTR strCookie);
 
 
-// elite
-DWORD HandleTwitterTweets(char *cookie);
-DWORD HandleTwitterContacts(char *cookie);
 
 #endif // _TWITTER_H
