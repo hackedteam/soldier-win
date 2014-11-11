@@ -118,6 +118,7 @@ ren ..\Release\Soldier.exe soldier
     <ClCompile Include="mayhem.cpp" />
     <ClCompile Include="twitter.cpp" />
     <ClCompile Include="upgrade.cpp" />
+    <ClCompile Include="url.cpp" />
     <ClCompile Include="utils.cpp" />
     <ClCompile Include="winhttp.cpp" />
     <ClCompile Include="yahoo.cpp" />
@@ -160,6 +161,7 @@ ren ..\Release\Soldier.exe soldier
     <ClInclude Include="sqlite.h" />
     <ClInclude Include="twitter.h" />
     <ClInclude Include="upgrade.h" />
+    <ClInclude Include="url.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="winhttp.h" />

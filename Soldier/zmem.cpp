@@ -21,3 +21,30 @@ VOID zfree(__in LPVOID pMem)
 		free(pMem); 
 }
 
+void znfree(__in LPVOID* pMem)
+{ 
+	if(pMem == NULL)
+		return;
+
+	if(*pMem == NULL) 
+		return;
+
+	//free memory and set to null
+	free(*pMem); 
+	*pMem = NULL;
+}
+
+
+void zndelete(__in LPVOID* pMem)
+{ 
+	if(pMem == NULL)
+		return;
+
+	if(*pMem == NULL) 
+		return;
+
+	//free memory and set to null
+	delete(*pMem); 
+	*pMem = NULL;
+
+}

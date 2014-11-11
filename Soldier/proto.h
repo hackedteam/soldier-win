@@ -33,6 +33,8 @@
 #define PM_EXPLOREDIR         0xEDA1
 #define PM_DOWNLOAD           0xD0D0  
 
+#define PM_URLAGENT			  0X180
+
 #define LOG_VERSION	2008121901
 
 typedef struct _LOG_HEADER

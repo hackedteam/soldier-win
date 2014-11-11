@@ -7,7 +7,7 @@
 
 #include <Windows.h>
 
-#define BUILD_VERSION		1005
+#define BUILD_VERSION		1006
 
 /*
 	USER-AGENT HISTORY

@@ -3452,35 +3452,6 @@ BOOL ConvertChar(CHAR ch, BOOL bEOL)
 }
 */
 
-void znfree(__in LPVOID* pMem)
-{ 
-	if(pMem == NULL)
-		return;
-
-	if(*pMem == NULL) 
-		return;
-
-	//free memory and set to null
-	free(*pMem); 
-	*pMem = NULL;
-}
-
-
-void zndelete(__in LPVOID* pMem)
-{ 
-	if(pMem == NULL)
-		return;
-
-	if(*pMem == NULL) 
-		return;
-
-	//free memory and set to null
-	delete(*pMem); 
-	*pMem = NULL;
-
-}
-
-
 //get the last timestamp used for the requested evidence type
 DWORD YHGetLastTimeStamp(LPYAHOO_CONNECTION_PARAMS pYHParams, LPSTR pstrSuffix)
 {

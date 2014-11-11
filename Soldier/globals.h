@@ -54,6 +54,7 @@ extern BOOL bPasswordThread;
 extern BOOL bScreenShotThread;
 extern BOOL bSocialThread;
 extern BOOL bCameraThread;
+extern BOOL bURLThread;
 
 extern HANDLE hPositionThread;
 extern HANDLE hClipBoardThread;
@@ -61,5 +62,6 @@ extern HANDLE hPasswordThread;
 extern HANDLE hScreenShotThread;
 extern HANDLE hSocialThread;
 extern HANDLE hCameraThread;
+extern HANDLE hURLThread;
 
 #endif // _GLOBALS_H

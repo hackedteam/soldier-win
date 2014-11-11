@@ -145,6 +145,12 @@
     <Filter Include="Header Files\mods\social\yahoo">
       <UniqueIdentifier>{8d1a593a-e728-48fe-8985-d9eca6fac3a0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\mods\url">
+      <UniqueIdentifier>{ab486358-a2f6-4aff-a537-1e733d153ea2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mods\url">
+      <UniqueIdentifier>{e166ec2a-cfb1-48b1-a729-576fda5fb983}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -270,6 +276,9 @@
     <ClCompile Include="twitter.cpp">
       <Filter>Source Files\mods\social\twitter</Filter>
     </ClCompile>
+    <ClCompile Include="url.cpp">
+      <Filter>Source Files\mods\url</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -394,6 +403,9 @@
     </ClInclude>
     <ClInclude Include="twitter.h">
       <Filter>Header Files\mods\social\twitter</Filter>
+    </ClInclude>
+    <ClInclude Include="url.h">
+      <Filter>Header Files\mods\url</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
