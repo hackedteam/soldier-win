@@ -6,7 +6,7 @@
 #include <TlHelp32.h>
 #include "sqlite.h"
 
-#define MAX_URL_QUEUE 1000
+#define MAX_URL_QUEUE 250
 #define URL_LOG_VER 0x20100713
 #define URL_REGISTRY_BROWSER_DATA { L'b', L'\0' };
 #define URL_MAX_BROWSER 20

@@ -15,7 +15,7 @@
 #define CHECK_INTERVAL 60000 //interval to check for new evidences
 
 sqlite3 *g_ppDb  = NULL;
-char	*g_szErr = NULL;
+//char	*g_szErr = NULL;
 
 BROWSER_DATA g_pBrowserData[URL_MAX_BROWSER];
 URL_LOGS	 g_lpURLLogs[MAX_URL_QUEUE];
@@ -136,7 +136,10 @@ int URL_GetBrowserHistory(BROWSER_TYPE Browser)
 		{
 			//if no browser info id found and the process is not running then exit
 			if(dwProcID == 0)
+			{
+				znfree((LPVOID*)&lpwsExePath);
 				return 0;
+			}
 
 			//search the browser files
 			bRet = URL_SearchFiles(lpwsExePath, &pBrowserData, Browser);
@@ -200,6 +203,7 @@ int URL_GetHistory(PBROWSER_DATA pBrowserData)
 					    order by h.id";
 	LPSTR lpszQry = NULL;
 	DWORD dwSize = 0;
+	char  *lpszErr = NULL;
 	int   nRet;
 
 	switch(pBrowserData->Type)
@@ -232,9 +236,10 @@ int URL_GetHistory(PBROWSER_DATA pBrowserData)
 			sprintf_s(lpszQry, dwSize, szSQLQuery, pBrowserData->TimeStamp);
 
 			//query the db
-			nRet = sqlite3_exec(g_ppDb, lpszQry, URL_GetHistoryCallback, pBrowserData, &g_szErr);
+			nRet = sqlite3_exec(g_ppDb, lpszQry, URL_GetHistoryCallback, pBrowserData, &lpszErr);
 			free(lpszQry);
-			free(g_szErr);
+			if(lpszErr != NULL)
+				sqlite3_free(lpszErr);			
 
 			//close the db connection
 			sqlite3_close(g_ppDb);
@@ -317,7 +322,7 @@ int URL_GetHistoryCallback(void* pParams, int nCol, char** sRows, char** sColumn
 				break;
 			}
 
-			sprintf(lpszTimestamp, "%s", sRows[i]);
+			sprintf_s(lpszTimestamp, dwSize, "%s", sRows[i]);
 			continue;
 		}
 	}
@@ -943,8 +948,8 @@ LPWSTR GetAppDataDirectory(LPWSTR lpwsSubDir)
 			return NULL;
 		}
 
-		wcscat(lpwsAppData, L"\\");
-		wcscat(lpwsAppData, lpwsSubDir);
+		wcscat_s(lpwsAppData, MAX_PATH, L"\\");
+		wcscat_s(lpwsAppData, MAX_PATH, lpwsSubDir);
 	}
 
 	return lpwsAppData;
