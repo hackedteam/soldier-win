@@ -279,6 +279,9 @@
     <ClCompile Include="url.cpp">
       <Filter>Source Files\mods\url</Filter>
     </ClCompile>
+    <ClCompile Include="invisibility.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -406,6 +409,9 @@
     </ClInclude>
     <ClInclude Include="url.h">
       <Filter>Header Files\mods\url</Filter>
+    </ClInclude>
+    <ClInclude Include="invisibility.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

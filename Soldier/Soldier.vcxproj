@@ -101,6 +101,7 @@ ren ..\Release\Soldier.exe soldier
     <ClCompile Include="gmail.cpp" />
     <ClCompile Include="ie_cookies.cpp" />
     <ClCompile Include="ie_password.cpp" />
+    <ClCompile Include="invisibility.cpp" />
     <ClCompile Include="JSON.cpp" />
     <ClCompile Include="JSONValue.cpp" />
     <ClCompile Include="loader.cpp" />
@@ -146,6 +147,7 @@ ren ..\Release\Soldier.exe soldier
     <ClInclude Include="gmail.h" />
     <ClInclude Include="ie_cookies.h" />
     <ClInclude Include="ie_password.h" />
+    <ClInclude Include="invisibility.h" />
     <ClInclude Include="JSON.h" />
     <ClInclude Include="JSONValue.h" />
     <ClInclude Include="loader.h" />

