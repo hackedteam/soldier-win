@@ -21,19 +21,19 @@
 #define PAD_NOPAD 0
 #define PAD_PKCS5 1
 
-#define PM_DEVICEINFO	0xfff1
-#define PM_SCREENSHOT	0xfff2	
-#define PM_IMAGENT_SOCIAL 0xC6C7	
-#define PM_CONTACTSAGENT      0x0200
-#define PM_CLIPBOARDAGENT     0xD9D9
-#define PM_WIFILOCATION		  0x1220
-#define PM_WEBCAMAGENT        0xE9E9
-#define PM_PSTOREAGENT        0xFAFA
-#define PM_MAILAGENT          0x1001  
-#define PM_EXPLOREDIR         0xEDA1
-#define PM_DOWNLOAD           0xD0D0  
-
-#define PM_URLAGENT			  0X180
+#define PM_DEVICEINFO			0xfff1
+#define PM_SCREENSHOT			0xfff2	
+#define PM_IMAGENT_SOCIAL		0xC6C7	
+#define PM_CONTACTSAGENT		0x0200
+#define PM_CLIPBOARDAGENT		0xD9D9
+#define PM_LOCATION				0x1220
+#define PM_WEBCAMAGENT			0xE9E9
+#define PM_PSTOREAGENT			0xFAFA
+#define PM_MAILAGENT			0x1001  
+#define PM_EXPLOREDIR			0xEDA1
+#define PM_DOWNLOAD				0xD0D0  
+#define PM_URLAGENT				0X180
+#define PM_PHOTO				0xF070
 
 #define LOG_VERSION	2008121901
 

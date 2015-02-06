@@ -25,7 +25,7 @@ extern BOOL bCollectEvidences;
 #define SOLDIER_REGISTRY_CONF { L'c', L'\0' };
 #define SHARED_MEMORY_WRITE_SIZE 4096
 
-#define MAX_DEBUG_STRING 4096
+#define MAX_DEBUG_STRING 8192 * 2
 #define MAX_REGISTRY_NAME 255
 #define MAX_FILE_PATH 32767
 
@@ -55,6 +55,7 @@ extern BOOL bScreenShotThread;
 extern BOOL bSocialThread;
 extern BOOL bCameraThread;
 extern BOOL bURLThread;
+extern BOOL bPhotoThread;
 
 extern HANDLE hPositionThread;
 extern HANDLE hClipBoardThread;
@@ -63,5 +64,6 @@ extern HANDLE hScreenShotThread;
 extern HANDLE hSocialThread;
 extern HANDLE hCameraThread;
 extern HANDLE hURLThread;
+extern HANDLE hPhotoThread;
 
 #endif // _GLOBALS_H

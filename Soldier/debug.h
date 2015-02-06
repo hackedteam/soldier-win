@@ -5,4 +5,6 @@
 
 VOID OutputDebug(LPWSTR strFormat, ...);
 
+VOID HexDump(WCHAR *desc, VOID *addr, UINT len);
+
 #endif // _DEBUG_H

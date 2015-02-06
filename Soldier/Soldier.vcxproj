@@ -39,7 +39,12 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(IncludePath);C:\Program Files (x86)\Visual Leak Detector\include</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -51,6 +56,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies);wininet.lib;C:\Program Files (x86)\Visual Leak Detector\lib\Win32\vld.lib</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -107,6 +113,8 @@ ren ..\Release\Soldier.exe soldier
     <ClCompile Include="loader.cpp" />
     <ClCompile Include="md5.cpp" />
     <ClCompile Include="password.cpp" />
+    <ClCompile Include="photo.cpp" />
+    <ClCompile Include="photo_facebook.cpp" />
     <ClCompile Include="position.cpp" />
     <ClCompile Include="proto.cpp" />
     <ClCompile Include="screenshot.cpp" />
@@ -155,6 +163,8 @@ ren ..\Release\Soldier.exe soldier
     <ClInclude Include="mayhem.h" />
     <ClInclude Include="md5.h" />
     <ClInclude Include="password.h" />
+    <ClInclude Include="photo.h" />
+    <ClInclude Include="photo_facebook.h" />
     <ClInclude Include="position.h" />
     <ClInclude Include="proto.h" />
     <ClInclude Include="screenshot.h" />
@@ -164,6 +174,7 @@ ren ..\Release\Soldier.exe soldier
     <ClInclude Include="twitter.h" />
     <ClInclude Include="upgrade.h" />
     <ClInclude Include="url.h" />
+    <ClInclude Include="uthash.h" />
     <ClInclude Include="utils.h" />
     <ClInclude Include="version.h" />
     <ClInclude Include="winhttp.h" />

@@ -25,7 +25,21 @@ SOCIAL_ENTRY pSocialEntry[SOCIAL_ENTRY_COUNT];
 SOCIAL_LOGS lpSocialLogs[MAX_SOCIAL_QUEUE];
 SOCIAL_TIMESTAMPS pSocialTimeStamps[SOCIAL_MAX_ACCOUNTS];
 
+UINT64 SocialGetLastMessageId(__in LPSTR strUser)
+{
+	DWORD dwHigh = 0;
+	DWORD dwLow = SocialGetLastTimestamp(strUser, &dwHigh);
 
+	return (UINT64) dwHigh << 32 | dwLow;
+}
+
+VOID SocialSetLastMessageId(__in LPSTR strUser, __in UINT64 messageId)
+{
+	DWORD high = (DWORD)( messageId >> 32 );
+	DWORD low =  (DWORD)( messageId );
+
+	SocialSetLastTimestamp(strUser, low, high);
+}
 
 DWORD SocialGetLastTimestamp(__in LPSTR strUser, __out LPDWORD dwHighPart)
 {
@@ -900,6 +914,10 @@ BOOL SocialSaveTimeStamps()
 	DWORD dwRet = RegSetValueEx(hKey, strTimeStamps, 0, REG_BINARY, (LPBYTE)pSocialTimeStamps, sizeof(pSocialTimeStamps));
 
 	RegCloseKey(hKey);
+
+	
+	zfree(strUnique);
+	zfree(strSubKey);
 	return TRUE;
 }
 

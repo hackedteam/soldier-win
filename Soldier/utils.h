@@ -50,11 +50,18 @@ VOID AppendRandomData(PBYTE pBuffer, DWORD uBuffLen);
 ULONG Align(__in ULONG uSize, __in ULONG uAlignment);
 LPBYTE MapFile(LPWSTR strFileName, DWORD dwSharemode);
 VOID URLDecode(__in LPSTR strUrl);
-LPWSTR UTF8_2_UTF16(LPSTR strSource);
 VOID JsonDecode(__in LPSTR strSource);
 LPWSTR CreateTempFile();
 BOOL WMIExecQueryGetProp(IWbemServices *pSvc, LPWSTR strQuery, LPWSTR strField,  LPVARIANT lpVar);
 BOOL WMIExecQuerySearchEntryHash(IWbemServices *pSvc, LPWSTR strQuery, LPWSTR strField, LPBYTE pSearchHash, LPVARIANT lpVar);
 VOID CreateFileReplacerBatch(__in PWCHAR lpGarbageFile, __in PWCHAR lpScoutStartupPath, __out PWCHAR *pBatchOutName);
+
+/* time conversion */
+void UnixTimeToFileTime(time_t t, LPFILETIME pft);
+void UnixTimeToSystemTime(time_t t, LPSYSTEMTIME pst);
+
+/* string conversion */
+LPSTR WideCharToUTF8(LPWSTR strIn);
+LPWSTR UTF8_2_UTF16(LPSTR strSource);
 
 #endif // _UTILS_H

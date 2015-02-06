@@ -48,3 +48,48 @@ void zndelete(__in LPVOID* pMem)
 	*pMem = NULL;
 
 }
+
+/* these want be a secure alloc/free wrappers with the following characteristics
+  
+   alloc:
+   - unsigned int for size parameter
+   - check against max size allocation: TODO define max size
+   - check against zero bytes allocation
+   - zero out allocated memory
+
+   free:
+   - check against NULL before freeing
+   - assign NULL to ptr after freeing
+
+
+   clients:
+   - check return values against NULL
+   - cast immediately the returned type, i.e.
+		#define MALLOC(type) ((type) malloc(sizeof(type)))
+		#define MALLOC_ARRAY(number, type) ((type*) malloc((number) * sizeof(type)))
+
+	N.B.: feel free to add any additional secure oriented allocation feature and document it 
+*/
+
+LPVOID zalloc_s(__in size_t dwSize )
+{
+		
+	if (dwSize == 0)
+		return NULL;
+
+	LPBYTE pMem = (LPBYTE) malloc(dwSize);
+	SecureZeroMemory(pMem, dwSize);
+
+	return pMem;
+}
+
+VOID zfree_s(__in LPVOID pMem)
+{
+	if (pMem)
+	{
+		free(pMem);
+		pMem = NULL;
+	}
+
+}
+

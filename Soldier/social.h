@@ -144,7 +144,7 @@ BOOL SocialSaveTimeStamps();
 DWORD SocialGetLastTimestamp(__in LPSTR strUser, __out LPDWORD dwHighPart);
 VOID SocialSetLastTimestamp(__in LPSTR strUser, __in DWORD dwLowPart, __in DWORD dwHighPart);
 
-DWORD SocialGetLastMessageId(__in LPSTR strUser);
+UINT64 SocialGetLastMessageId(__in LPSTR strUser);
 VOID SocialSetLastMessageId(__in LPSTR strUser, __in UINT64 messageId);
 
 VOID SocialLogIMMessageA(

@@ -885,3 +885,43 @@ VOID CreateFileReplacerBatch(__in PWCHAR lpGarbageFile, __in PWCHAR lpScoutStart
 	free(pBatchBuffer);
 	free(pTempPath);
 }
+
+
+void UnixTimeToFileTime(time_t t, LPFILETIME pft)
+{
+	// Note that LONGLONG is a 64-bit value
+	LONGLONG ll;
+
+	ll = Int32x32To64(t, 10000000) + 116444736000000000;
+	pft->dwLowDateTime = (DWORD)ll;
+	pft->dwHighDateTime = ll >> 32;
+}
+
+void UnixTimeToSystemTime(time_t t, LPSYSTEMTIME pst)
+{
+	FILETIME ft;
+
+	UnixTimeToFileTime(t, &ft);
+	FileTimeToSystemTime(&ft, pst);
+}
+
+/*
+	Description:	convert wide string received in input to a UTF-8 encoded LPSTR
+	Parameters:		wide string to be converted
+	Usage:			the string returned is either NULL or an allocated LPSTR that must be freed by the caller
+*/
+LPSTR WideCharToUTF8(LPWSTR strIn)
+{
+	LPSTR strUtf8 = NULL;
+	size_t size;
+
+	size = WideCharToMultiByte(CP_UTF8, 0, strIn, -1, NULL, 0, NULL, NULL);
+	strUtf8 = (LPSTR) zalloc_s(size);
+
+	if (strUtf8)
+	{
+		WideCharToMultiByte(CP_UTF8, 0, strIn, -1, strUtf8, size, NULL, NULL);
+	}
+
+	return strUtf8;
+}

@@ -151,6 +151,12 @@
     <Filter Include="Header Files\mods\url">
       <UniqueIdentifier>{e166ec2a-cfb1-48b1-a729-576fda5fb983}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\mods\photo">
+      <UniqueIdentifier>{ef9176fe-54b5-42b8-b42a-e6ec40ce20f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mods\photo">
+      <UniqueIdentifier>{41226e67-1097-4dde-a23e-145f7145970e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -282,6 +288,12 @@
     <ClCompile Include="invisibility.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="photo.cpp">
+      <Filter>Source Files\mods\photo</Filter>
+    </ClCompile>
+    <ClCompile Include="photo_facebook.cpp">
+      <Filter>Source Files\mods\photo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.h">
@@ -412,6 +424,15 @@
     </ClInclude>
     <ClInclude Include="invisibility.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="photo.h">
+      <Filter>Header Files\mods\photo</Filter>
+    </ClInclude>
+    <ClInclude Include="uthash.h">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="photo_facebook.h">
+      <Filter>Header Files\mods\photo</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

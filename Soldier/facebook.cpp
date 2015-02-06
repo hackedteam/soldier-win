@@ -10,6 +10,7 @@
 #include "JSON.h"
 #include "conf.h"
 
+
 LPSTR FacebookGetUserId(LPSTR strBuffer)
 {
 	LPSTR strParser = strstr(strBuffer, FB_USER_ID);
@@ -456,3 +457,5 @@ DWORD FacebookContactHandler(LPSTR strCookie)
 
 	return SOCIAL_REQUEST_BAD_COOKIE;
 }
+
+
