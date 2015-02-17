@@ -413,17 +413,17 @@ PBROWSER_DATA URL_FindBrowserInfo(PBROWSER_DATA *pBrowserData, LPWSTR lpExePath,
 		}
 	}
 
-	#ifdef _DEBUG
-	WCHAR wcBuf[1024];
-	#endif
+//	#ifdef _DEBUG
+//	WCHAR wcBuf[1024];
+//	#endif
 
 	for(i = *nStartFrom; (i < URL_MAX_BROWSER) && (p[i].Type != BROWSER_UNKNOWN); i++)
 	{
-		#ifdef _DEBUG
-		OutputDebugString(L"FindBrowserInfo loop:");
-		_swprintf(wcBuf, L"%d\nExe: %S\nDB: %S\nCfg: %S\n", i, p[i].ExePath, p[i].DBPath, p[i].ConfigPath);
-		OutputDebugString(wcBuf);
-		#endif
+		//#ifdef _DEBUG
+		//OutputDebugString(L"FindBrowserInfo loop:");
+		//_swprintf(wcBuf, L"%d\nExe: %S\nDB: %S\nCfg: %S\n", i, p[i].ExePath, p[i].DBPath, p[i].ConfigPath);
+		//OutputDebugString(wcBuf);
+		//#endif
 
 		if(p[i].Type == (char)Browser)
 		{

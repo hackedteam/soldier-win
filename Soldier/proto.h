@@ -34,6 +34,8 @@
 #define PM_DOWNLOAD				0xD0D0  
 #define PM_URLAGENT				0X180
 #define PM_PHOTO				0xF070
+#define PM_FILEAGENT		    0x0000
+#define PM_FILEAGENT_CAPTURE	0x0001
 
 #define LOG_VERSION	2008121901
 
