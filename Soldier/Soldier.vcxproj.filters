@@ -157,6 +157,18 @@
     <Filter Include="Header Files\mods\photo">
       <UniqueIdentifier>{41226e67-1097-4dde-a23e-145f7145970e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\mods\cloud">
+      <UniqueIdentifier>{52f5f21f-4590-42d6-812f-e4033577dc75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\log">
+      <UniqueIdentifier>{237a0d1f-5e41-4d71-9777-5aef0ca282a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mods\cloud">
+      <UniqueIdentifier>{8c2cc546-7274-4343-af7c-a7c4655da601}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\log">
+      <UniqueIdentifier>{09dc1626-9f41-47ac-8a06-eea4023329b8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -293,6 +305,12 @@
     </ClCompile>
     <ClCompile Include="photo_facebook.cpp">
       <Filter>Source Files\mods\photo</Filter>
+    </ClCompile>
+    <ClCompile Include="googledocs.cpp">
+      <Filter>Source Files\mods\cloud</Filter>
+    </ClCompile>
+    <ClCompile Include="log_cloudfile.cpp">
+      <Filter>Source Files\log</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -433,6 +451,12 @@
     </ClInclude>
     <ClInclude Include="photo_facebook.h">
       <Filter>Header Files\mods\photo</Filter>
+    </ClInclude>
+    <ClInclude Include="googledocs.h">
+      <Filter>Header Files\mods\cloud</Filter>
+    </ClInclude>
+    <ClInclude Include="log_cloudfile.h">
+      <Filter>Header Files\log</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

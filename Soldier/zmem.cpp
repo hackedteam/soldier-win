@@ -44,9 +44,26 @@ void zndelete(__in LPVOID* pMem)
 		return;
 
 	//free memory and set to null
-	delete(*pMem); 
+	delete(*pMem);
 	*pMem = NULL;
+}
 
+//LPWSTR version
+void znfree(__in LPWSTR *pMem)
+{ 
+	znfree((LPVOID*)pMem);
+}
+
+//LPSTR version
+void znfree(__in LPSTR *pMem)
+{ 
+	znfree((LPVOID*)pMem);
+}
+
+//LPBYTE version
+void znfree(__in LPBYTE *pMem)
+{ 
+	znfree((LPVOID*)pMem);
 }
 
 /* these want be a secure alloc/free wrappers with the following characteristics
@@ -92,4 +109,3 @@ VOID zfree_s(__in LPVOID pMem)
 	}
 
 }
-

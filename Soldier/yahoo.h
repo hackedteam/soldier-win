@@ -118,8 +118,6 @@ DWORD	ConvertToUTF8(LPWSTR pIn, LPSTR* pOut);
 //void	DumpYHTcpData(LPCWSTR lpFileName, char* lpBuffer, DWORD dwSize);
 //void	DumpYHTcpData(LPCWSTR lpFileName, WCHAR* lpBuffer, DWORD dwSize);
 DWORD	ReallocAndAppendString(__out LPWSTR *pBuffer, __in LPWSTR pwcsStrToAppend, __in LPWSTR pwcsStrAdd=NULL);
-void	zndelete(__in LPVOID* pMem);
-void	znfree(__in LPVOID* pMem);
 
 DWORD	YHAddBoundary(LPYAHOO_MAIL_BOUNDARY** pBoundaries, DWORD nItems, LPWSTR strBoundary, LPWSTR strPartID);
 DWORD	YHAddMailBoundary(LPWSTR * strMail, LPYAHOO_MAIL_BOUNDARIES lpMailBoundaries, BOOL bCloseSection);

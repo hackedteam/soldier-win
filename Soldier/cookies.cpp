@@ -93,7 +93,7 @@ BOOL AddCookieA(__in LPSTR strDomainTmp, __in LPSTR strName, __in LPSTR strValue
 		return FALSE;
 
 	CHAR strDomain[2048];
-	if (!_stricmp("google.com", strDomainTmp))
+	if ((!_stricmp("google.com", strDomainTmp)) || (!_stricmp("drive.google.com", strDomainTmp)) || (!_stricmp("docs.google.com", strDomainTmp)))
 		_snprintf_s(strDomain, 2047, _TRUNCATE, "mail.google.com");
 	else
 		_snprintf_s(strDomain, 2047, _TRUNCATE, strDomainTmp);

