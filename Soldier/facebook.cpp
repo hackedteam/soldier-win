@@ -452,6 +452,11 @@ DWORD FacebookContactHandler(LPSTR strCookie)
 		}
 	}
 
+	/* cleanup */
+	zfree(strUserId);
+	zfree(strScreenName);
+	zfree(strRecvBuffer);
+	zfree(strUrl);
 	if (jValue)
 		delete jValue;
 

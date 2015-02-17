@@ -20,6 +20,7 @@ typedef struct _PHOTO_LOGS
 #define MAX_PHOTO_QUEUE 1000
 extern PHOTO_LOGS lpPhotoLogs[MAX_PHOTO_QUEUE];
 
+
 VOID PhotoMain();
 BOOL QueuePhotoLog(__in LPBYTE lpEvBuff, __in DWORD dwEvSize);
 

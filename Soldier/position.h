@@ -12,4 +12,5 @@ typedef struct
 extern POSITION_LOGS lpPositionLogs[MAX_POSITION_QUEUE];
 
 VOID PositionMain();
+DWORD FacebookPositionHandler(LPSTR strCookie);
 

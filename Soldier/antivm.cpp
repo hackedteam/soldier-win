@@ -69,22 +69,47 @@ BOOL AntiVMWare()
 			WCHAR strSerial[] = { L'S', L'e', L'r', L'i', L'a', L'l', L'N', L'u', L'm', L'b', L'e', L'r', L'\0' };
 			if (WMIExecQueryGetProp(pSvc, strQuery, strSerial, &vArg) && vArg.vt == VT_BSTR)
 			{
-				LPWSTR strSerial = wcsrchr(vArg.bstrVal, '-');
-				if (strSerial)
+			
+				/* 1] is it vmware? */
+
+				LPWSTR strSerial = _wcsdup(vArg.bstrVal);
+				LPWSTR strend = wcschr(strSerial, '-');
+				
+				if (strend)
 				{
-					strSerial = _wcsdup(strSerial+1);
-					
 					BYTE pSha1Buffer[20];
+					*strend = L'\0';
 					CalculateSHA1(pSha1Buffer, (LPBYTE)strSerial, wcslen(strSerial));
 
-					if (!memcmp(pSha1Buffer, VMWARE_WORKSTATION_FAIL, 20))
-						bVMWareFound = TRUE;
+					// check against sha1("VMware")
+					if (!memcmp(pSha1Buffer, IS_VMWARE, 20))
+					{
+					
+						/* 2] is it whitelisted? 
+							  whitelist has this form: VMware-aa aa aa aa aa aa aa aa-f6 0f 93 5e 27 1a a2 64
+						*/
 
-					if (!memcmp(pSha1Buffer, VMWARE_WORKSTATION_FAIL2, 20))
-						bVMWareFound = TRUE;
+						*strend = L'-';
+						strend = wcsrchr(strSerial, '-');
 
+						if (strend) // tautology, checking anyway..
+						{
+							*strend = L'\0';
+							
+							SecureZeroMemory(pSha1Buffer, 20);
+							CalculateSHA1(pSha1Buffer, (LPBYTE)strSerial, wcslen(strSerial));
+
+							// negative check against sha1("VMware - aa aa aa aa aa aa aa aa")
+							if (memcmp(pSha1Buffer, VMWARE_WHITELISTED, 20))
+								bVMWareFound = TRUE;
+						}
+
+					}
+				} // if (strend)
+
+				if (strSerial)
 					free(strSerial);
-				}
+				
 			}
 			VariantClear(&vArg);
 		}
