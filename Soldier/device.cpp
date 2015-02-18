@@ -403,6 +403,7 @@ VOID GetDeviceInfo()
 	lpDeviceContainer->uSize = (wcslen(strDeviceString) + 1) * sizeof(WCHAR);
 
 	zfree(strAppList);
+	zfree(lpDeviceInfo);
 
 	//release the mutex
 	ReleaseMutex(g_hDevMutex);
