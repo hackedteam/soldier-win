@@ -799,7 +799,6 @@ DWORD GD_GetFileInfo_V2(PGD_FILE *pFile, JSONObject jFileObj, DWORD dwSavedTimes
 	wcscpy_s(pNewFile->pwszFileID, dwSize, jFileObj[pwszFileID]->AsString().c_str());
 
 	//get the file name
-	//WCHAR pwszRoot[] = { L'G', L'D', L'r', L'i', L'v', L'e', L'\\', L'\0'};
 	WCHAR pwszRoot[] = { L'c', L'l', L'o', L'u', L'd', L':', L'\\', L'G', L'o', L'o', L'g', L'l', L'e', L'D', L'r', L'i', L'v', L'e', L'\\', L'\0'};
 
 	if(jFileObj[pwszFileName]->IsString())
@@ -823,6 +822,10 @@ DWORD GD_GetFileInfo_V2(PGD_FILE *pFile, JSONObject jFileObj, DWORD dwSavedTimes
 		//if the file is a google document, append the extension according to file type
 		if(GD_IsGoogleDoc(FileType))
 			GD_AddFileExtension(&pNewFile->pwszFileName, FileType);
+	}
+	else
+	{
+		return GD_E_INVALID_JSON_DATA;
 	}
 
 	//file timestamp
@@ -1009,11 +1012,18 @@ DWORD GD_GetFile(PGD_FILE pFile,  PGD_PARAMS pParams, LPSTR pszCookie)
 							delete jValue;
 							znfree(&pszRecvBuf);
 							return GD_E_HTTP;
-						}				
+						}
 					}
 				}
 			}
-		}		
+		}
+		else
+		{
+			znfree(&pwszURI);
+			znfree(&pwszHost);
+			znfree(&pwszHeader);
+			return GD_E_INVALID_JSON_DATA;
+		}
 
 		//delete json struct
 		delete jValue;

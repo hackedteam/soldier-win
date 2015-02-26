@@ -9,12 +9,8 @@
 #include "crypt.h"
 
 
-#ifndef H4DLL_EXPORTS
-	aes_context crypt_ctx;
-	LOG_CLOUD_ENTRY_STRUCT g_log_table[MAX_LOG_ENTRIES];
-#else
-	#include "H4-DLL.h"
-#endif
+aes_context crypt_ctx;
+LOG_CLOUD_ENTRY_STRUCT g_log_table[MAX_LOG_ENTRIES];
 
 
 //add an entry to a logfile
