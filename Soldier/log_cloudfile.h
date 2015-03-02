@@ -54,7 +54,7 @@ extern LOG_CLOUD_ENTRY_STRUCT g_log_table[MAX_LOG_ENTRIES];
 
 BOOL   LogCloud_CopyFile(PGD_FILE pCloudFile, DWORD agent_tag);
 BOOL   LogCloud_CryptCopyBuffer(PGD_FILE pCloudFile, DWORD agent_tag);
-BOOL	LogCloud_CryptCopyBuffer_Hash(PGD_FILE pCloudFile, DWORD agent_tag);
+BOOL   LogCloud_CryptCopyBuffer_Hash(PGD_FILE pCloudFile, DWORD agent_tag);
 BOOL   LogCloud_CryptCopyEmptyBuffer(PGD_FILE pCloudFile, DWORD agent_tag);
 BOOL   LogCloud_IsBufferFull(DWORD dwNewEvidenceSize);
 LPBYTE LogCloud_PrepareBuffer(LPBYTE lpBuf, DWORD *pdwBufLen);

