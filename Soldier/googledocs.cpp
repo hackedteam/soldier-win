@@ -54,6 +54,11 @@ DWORD GoogleDocsHandler(LPSTR pszCookie)
 			if(dwRet == GD_E_SUCCESS)
 				dwErr = SOCIAL_REQUEST_SUCCESS;
 		}
+		else if((dwRet == GD_E_SKIP_FILE) && ((DocList.Items == 0) && (FileList.Items == 0)))
+		{
+			//no more files to donwload
+			dwErr = SOCIAL_REQUEST_SUCCESS;
+		}
 	}
 	
 	GD_DeleteFileList(&DocList.List);
