@@ -860,6 +860,7 @@ VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fb
 		zfree_s(strEpochTimestamp);
 	
 	zfree_s(strRecvBuffer); 
+	zfree_s(facebookPhotoPageSanitized);
 }
 
 /*
