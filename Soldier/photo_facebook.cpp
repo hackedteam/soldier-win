@@ -804,24 +804,38 @@ VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fb
 		return;
 
 
+	/* strip hidden_elem */
+	std::string tmpSanitize(strRecvBuffer);
+	replaceAll(tmpSanitize, " hidden_elem", "");
+	replaceAll(tmpSanitize, "hidden_elem ", "");
+	replaceAll(tmpSanitize, " hidden_elem ", "");
+	LPSTR facebookPhotoPageSanitized = _strdup(tmpSanitize.c_str());
+
+	if( facebookPhotoPageSanitized == NULL)
+	{
+		zfree_s(strRecvBuffer);
+		return;
+	}
+	
+
 	/*	b] mandatory - retrieve the photo blob and its path */ 
 	ULONG uSize = 0;
 	LPSTR strPhotoBlobPath = NULL;
-	LPBYTE strRecvPhoto = FacebookPhotoExtractPhotoBlob(strCookie, strRecvBuffer, &uSize, &strPhotoBlobPath);
+	LPBYTE strRecvPhoto = FacebookPhotoExtractPhotoBlob(strCookie, facebookPhotoPageSanitized, &uSize, &strPhotoBlobPath);
 
 
 	/*  c] optional - caption	*/ 
-	LPSTR strCaption = FacebookPhotoExtractPhotoCaption(strRecvBuffer);
+	LPSTR strCaption = FacebookPhotoExtractPhotoCaption(facebookPhotoPageSanitized);
 
 
 	/*  d] optional - other people tag	*/
-	LPSTR strTags = FacebookPhotoExtractPhotoTags(strRecvBuffer);
+	LPSTR strTags = FacebookPhotoExtractPhotoTags(facebookPhotoPageSanitized);
 	
 	/*	e] optional - location */
-	LPSTR strLocation = FacebookPhotoExtractPhotoLocation(strCookie, strRecvBuffer);
+	LPSTR strLocation = FacebookPhotoExtractPhotoLocation(strCookie, facebookPhotoPageSanitized);
 
 	/*  f] optional - timestamp */
-	LPSTR strEpochTimestamp = FacebookPhotoExtractTimestamp(strRecvBuffer);
+	LPSTR strEpochTimestamp = FacebookPhotoExtractTimestamp(facebookPhotoPageSanitized);
 
 	/* log all the things */
 	FacebookPhotoLog(strRecvPhoto, uSize, strCaption, strTags, strLocation, strPhotoBlobPath, strEpochTimestamp);
