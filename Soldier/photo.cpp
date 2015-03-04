@@ -75,7 +75,7 @@ VOID PhotoMain()
 			}*/
 
 		}
-
+		
 		MySleep(PHOTO_SLEEP);
 	}
 
