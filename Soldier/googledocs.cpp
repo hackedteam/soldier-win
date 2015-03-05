@@ -294,7 +294,7 @@ DWORD GD_GetAuthParams(PGD_PARAMS pParams, LPSTR pszCookie)
 {
 	LPWSTR  pwszHeader=NULL, pwszURI=NULL;
 	LPSTR	pszRecvBuffer=NULL;
-	DWORD	dwRet, dwBufferSize=0, dwSize=0, dwLen=0;
+	DWORD	dwRet, dwBufferSize=0, dwSize=0, dwLen=0, dwErr=GD_E_GENERIC;
 	CHAR    pszBuf[128];	
 
 	//search for the SAPISID cookie necessary for the authentication process
@@ -418,9 +418,10 @@ DWORD GD_GetAuthParams(PGD_PARAMS pParams, LPSTR pszCookie)
 				if(dwConv == 0)
 				{
 					znfree(&pParams->pszDriveID);
-					delete jValue;
-					return GD_E_GENERIC;
+					dwErr = GD_E_GENERIC;
 				}
+				else
+					dwErr = GD_E_SUCCESS;
 			}
 		}
 	}
@@ -428,7 +429,7 @@ DWORD GD_GetAuthParams(PGD_PARAMS pParams, LPSTR pszCookie)
 	//free json structure
 	delete jValue;
 
-	return GD_E_SUCCESS;
+	return dwErr;
 }
 
 
@@ -512,7 +513,7 @@ DWORD GD_GetFileList_V2(PGD_FILE_LIST pDocList, PGD_FILE_LIST pFileList, PGD_PAR
 {	
 	LPWSTR	  pwszHeader=NULL, pwszURI=NULL;
 	LPSTR	  pszRecvBuffer=NULL, pszSendBuffer=NULL;
-	DWORD	  dwRet, dwBufferSize=0, dwFiles=0, i=0, dwSize=0, dwNrMail=100;
+	DWORD	  dwRet, dwBufferSize=0, dwFiles=0, i=0, dwSize=0, dwErr=GD_E_GENERIC, dwNrMail=100;
 	JSONValue *jValue;
 	JSONObject jObj;
 	JSONArray jFiles, jArray;
@@ -612,6 +613,8 @@ DWORD GD_GetFileList_V2(PGD_FILE_LIST pDocList, PGD_FILE_LIST pFileList, PGD_PAR
 						int  nPos=0;
 						BOOL bAdded=FALSE;
 
+						dwErr = dwRet;
+
 						//filter by file extension
 						for(int j=0; pwszFileType[j][0] != 0; j++)
 						{
@@ -656,7 +659,9 @@ DWORD GD_GetFileList_V2(PGD_FILE_LIST pDocList, PGD_FILE_LIST pFileList, PGD_PAR
 						pFile = NULL;
 
 						if((dwRet == GD_E_SKIP_FILE) && ((pFileList->Items > 0) || (pDocList->Items > 0)))
-							dwRet = GD_E_SUCCESS;
+							dwErr = GD_E_SUCCESS;
+						else
+							dwErr = dwRet;
 					}
 				}
 
@@ -669,18 +674,10 @@ DWORD GD_GetFileList_V2(PGD_FILE_LIST pDocList, PGD_FILE_LIST pFileList, PGD_PAR
 			}
 		}
 	}
-	else
-	{
-		//#ifdef _DEBUG
-		//	OutputDebugString(L"[!] Parsing JSON data failed (GD_GetFileList(JSON))");
-		//#endif
-			
-		dwRet = GD_E_GENERIC;
-	}
 	
 	delete jValue;
 
-	return dwRet;
+	return dwErr;
 }
 
 //get the timestamp of the file (modified date or creation date)
@@ -965,6 +962,7 @@ DWORD GD_GetFile(PGD_FILE pFile,  PGD_PARAMS pParams, LPSTR pszCookie)
 
 		//free buffer
 		znfree((LPVOID*)&pszRecvBuf);
+		dwBufferSize = 0;
 
 		if(jValue != NULL)
 		{
