@@ -403,7 +403,7 @@ BOOL FacebookPlacesExtractPosition(__in JSONValue *jValue, __out location_additi
 											record->gps.dwSize = sizeof(GPS_POSITION);
 											record->gps.dwValidFields = GPS_VALID_UTC_TIME | GPS_VALID_LATITUDE | GPS_VALID_LONGITUDE;
 											record->gps.dwFlags = FACEBOOK_CHECK_IN;
-											UnixTimeToSystemTime(time, &record->gps.stUTCTime);
+											//UnixTimeToSystemTime(time, &record->gps.stUTCTime); ignore by backend
 																						
 
 											if (jPlace.find(L"latitude") != jPlace.end() && jPlace[L"latitude"]->IsNumber())
@@ -434,7 +434,8 @@ BOOL FacebookPlacesExtractPosition(__in JSONValue *jValue, __out location_additi
 											/* fill remaining field of gps_data_struct */
 											record->uSize = sizeof(gps_data_struct);
 											record->uVersion = GPS_VERSION;
-											GetSystemTimeAsFileTime(&record->ft);
+											//GetSystemTimeAsFileTime(&record->ft);
+											UnixTimeToFileTime(time, &record->ft);
 											record->gps.flHorizontalDilutionOfPrecision = 100; // needed for intelligence
 											record->dwDelimiter = LOG_DELIMITER;
 														
