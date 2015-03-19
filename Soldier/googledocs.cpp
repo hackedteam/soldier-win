@@ -169,6 +169,9 @@ DWORD GD_ExtractConnParams(LPSTR pszBuffer, PGD_PARAMS pParams)
 	"AIzaSyAy9VVXHSpS2IJpptzYtGbLP3-3_l0aBk4"
 	*/
 	
+	if(pszBuffer == NULL)
+		return GD_E_NO_PARAMS;
+
 	//search the string "drive_main",
 	pszTmp = strstr(pszBuffer, "drive_main\",");
 	if(pszTmp == NULL)
@@ -186,7 +189,8 @@ DWORD GD_ExtractConnParams(LPSTR pszBuffer, PGD_PARAMS pParams)
 		pszTmp = strstr(pszTmp, "]");
 		if(pszTmp)
 			pszTmp += 1;
-	}	
+	}
+
 	if(pszTmp == NULL)
 	{
 		#ifdef _DEBUG
@@ -328,6 +332,7 @@ DWORD GD_GetAuthParams(PGD_PARAMS pParams, LPSTR pszCookie)
 		znfree(&pszRecvBuffer);
 		znfree(&pwszHeader);
 		znfree(&pwszURI);
+		return GD_E_HTTP;
 	}
 
 	//extract the token value
